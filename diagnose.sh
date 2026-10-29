@@ -129,6 +129,17 @@ or_note() { out=$("$@" 2>/dev/null); if [ -n "$out" ]; then echo "$out"; else ec
     section "System log (rawin-launcher lines)"
     NOTE="(none in /var/log/messages; on webOS 10 logger lines do not reach it: see Boot log)"
     or_note sh -c "cat /var/log/messages* 2>/dev/null | grep -i -E 'rawin' | grep -v -E 'NL_(VSC|SOUND|APP_LAUNCH_BEGIN|APP_INSTALLED)' | tail -n 40"
+
+    # The Home panel runs inside LG's Home process: when the panel does not
+    # come up, what that process logged about our QML is the only trace.
+    if [ -f "$PANEL_BASE/main.qml" ]; then
+        section "Home panel: patched QML and what the Home process logged"
+        echo "patched main.qml mounted: $(grep -q cleanHomeLoader "$HOME_QML/main.qml" 2>/dev/null && echo yes || echo no)"
+        echo "panel files: $(ls "$PANEL_BASE/current" 2>/dev/null | tr '\n' ' ')"
+        echo "Home process: $(pidof com.webos.app.home 2>/dev/null || echo none)"
+        NOTE="(no Home or QML lines in /var/log/messages or the journal)"
+        or_note sh -c "{ cat /var/log/messages* 2>/dev/null; command -v journalctl >/dev/null 2>&1 && journalctl -n 3000 --no-pager 2>/dev/null; } | grep -i -E 'com\\.webos\\.app\\.home|cleanHome|Launcher\\.qml|FavouriteStore|Themes\\.js|Strings\\.js|WebOSServices|qml.*(error|warn|fail|unavailable)|(error|warn|fail).*qml' | grep -v -E 'NL_(VSC|SOUND|APP_LAUNCH_BEGIN|APP_INSTALLED)|SUBSCRIPTION_REPLY|RunningList' | tail -n 80"
+    fi
 } >"$OUT" 2>&1
 
 echo "rawin-launcher: diagnostics written to $OUT"
