@@ -60,7 +60,9 @@ or_note() { out=$("$@" 2>/dev/null); if [ -n "$out" ]; then echo "$out"; else ec
     # The Home panel: LG reads our patched copies only while they are mounted
     # over the firmware files.
     if [ -f "$PANEL_BASE/main.qml" ]; then
-        if cmp -s "$PANEL_BASE/main.qml" "$HOME_QML/main.qml" && cmp -s "$PANEL_BASE/UIController.qml" "$HOME_QML/Controllers/UIController.qml"; then
+        uictrl=$HOME_QML/Controllers/UIController.qml
+        [ -f "$uictrl" ] || uictrl=$HOME_QML/UserInterfaceLayer/UIController.qml
+        if cmp -s "$PANEL_BASE/main.qml" "$HOME_QML/main.qml" && cmp -s "$PANEL_BASE/UIController.qml" "$uictrl"; then
             echo "patched Home QML in place: yes"
         else
             echo "patched Home QML in place: no (the boot hook did not mount it, or LG Home changed)"

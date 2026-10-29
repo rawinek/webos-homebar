@@ -53,7 +53,7 @@ Installer options:
 | Option | What it does |
 | :--- | :--- |
 | `--probe` | Only says which variant fits this TV and why; changes nothing |
-| `--home-panel` | The panel inside LG's Home, or fail (no overlay instead) |
+| `--home-panel` | The panel inside LG's Home, or fail (no overlay instead). On the full-screen Home of webOS 6 it is experimental and only installed with this flag |
 | `--overlay` | The overlay app with the root helper, or fail |
 | `--keep-lg-home` | Overlay: leave LG's Home in place; *System → Original Home* opens it |
 | `--replace-lg-home` | Overlay on an untested webOS: put the black stand-in in LG Home's place anyway (on webOS 10 it always is) |

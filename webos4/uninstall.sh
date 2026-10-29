@@ -2,7 +2,7 @@
 # rawin-launcher (webOS 4): give LG Home back and remove the launcher.
 BASE=/var/lib/webosbrew/rawin-launcher
 ROOT=/usr/palm/applications/com.webos.app.home/qml
-for f in "$ROOT/main.qml" "$ROOT/Controllers/UIController.qml"; do
+for f in "$ROOT/main.qml" "$ROOT/Controllers/UIController.qml" "$ROOT/UserInterfaceLayer/UIController.qml"; do
     if grep -qF " $f " /proc/mounts; then umount "$f"; fi
 done
 # Unhide Home's CRIU snapshots, unless another hook still wants them hidden.

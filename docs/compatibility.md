@@ -54,7 +54,7 @@ name next to it.
 | 3.x | webOS 3.0, 3.5 | 2016–2017 | QML | Home panel, if the patch fits | Untested |
 | 4.x | webOS 4.0, 4.5 | 2018–2019 | QML | Home panel | **Tested on 4.10** (webOS 4.5) |
 | 5.x | webOS 5.0 | 2020 | QML, the same kind of ribbon as 4.x | Home panel (the patch fits; else the overlay) | **Tested on 5.6** (LG NANO80 and UN73, by users) |
-| 6.x | webOS 6.0 | 2021 | QML, a new full-screen Home | Overlay, HOME via Input Hook; LG's Home kept unless `--replace-lg-home` | **Tested on 6.3 and 6.5** (LG C1 and UP78, by users) |
+| 6.x | webOS 6.0 | 2021 | QML, a new full-screen Home | Overlay, HOME via Input Hook; LG's Home kept unless `--replace-lg-home`. The Home panel in LG's full-screen Home: `--home-panel`, experimental | **Tested on 6.3 and 6.5** (LG C1 and UP78, by users); Home panel untested |
 | 7.x | webOS 22 | 2022 | QML, as far as known; the full-screen Home | Overlay, HOME via Input Hook; LG's Home kept unless `--replace-lg-home` | Overlay **tested on 7.5** (a 2022 TV, by a user); System HOME: `--try-native-home` trial, untested |
 | 8.x | webOS 23 | 2023 | QML, as far as known; the full-screen Home | Most likely the overlay, as on 6.x | Untested; System HOME: `--try-native-home` trial |
 | 9.x | webOS 24 | 2024 | Flutter, like 10.x | Overlay, HOME via Input Hook; LG's Home kept unless `--replace-lg-home`. System HOME is the most likely next one to work: Glasshouse and Luma replace LG's Home on it | Untested; System HOME: `--try-native-home` trial |

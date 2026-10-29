@@ -9,7 +9,9 @@ BASE=/var/lib/webosbrew/rawin-launcher
 HOOK=/var/lib/webosbrew/init.d/76-rawin-launcher
 ROOT=/usr/palm/applications/com.webos.app.home/qml
 MAIN=$ROOT/main.qml
+# Controllers/ on the ribbon Home (webOS 4 and 5), UserInterfaceLayer/ on the full-screen one (webOS 6).
 CTRL=$ROOT/Controllers/UIController.qml
+[ -f "$CTRL" ] || CTRL=$ROOT/UserInterfaceLayer/UIController.qml
 
 say() { echo "rawin-launcher: $*"; }
 fail() { echo "rawin-launcher: $*" >&2; exit 1; }
