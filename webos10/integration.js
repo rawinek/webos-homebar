@@ -92,7 +92,12 @@ Integration.prototype.ownership = function() {
         var target=line.split(/\s+/)[1] || '', home='/usr/palm/applications/'+HOME;
         return target===home || target.indexOf(home+'/')===0 || target==='/usr/bin/com.webos.app.home';
     }) : [];
-    if (homeMounts.length) {
+    // webOS 6 trial: Homebar's script over LG Home's program, and nothing else.
+    var exeOnly=homeMounts.length && homeMounts.every(function(line) {return line.split(/\s+/)[1]==='/usr/bin/com.webos.app.home';});
+    if (exeOnly) {
+        owner=this.same('/usr/bin/com.webos.app.home', BASE+'/home-exe') ? 'native' : 'other';
+        if (glass.state === 'read' && glass.value.enabled === true) owner='other';
+    } else if (homeMounts.length) {
         owner=this.same('/usr/palm/applications/'+HOME, BASE+'/native-app') ? 'native' :
               this.same('/usr/palm/applications/'+HOME, BASE+'/app') ? 'legacy' : 'other';
         if (glass.state === 'read' && glass.value.enabled === true) owner='other';
@@ -108,7 +113,7 @@ Integration.prototype.inspect = function() {
         if (blocking) blockers.push(item);
     }
     var release=this.read('/etc/starfish-release');
-    var trial=release.state === 'read' && /release (7|8|9)\./.test(release.text) && this.fs.existsSync(BASE+'/native-trial');
+    var trial=release.state === 'read' && /release (6|7|8|9)\./.test(release.text) && this.fs.existsSync(BASE+'/native-trial');
     var nativeSupported=release.state === 'read' && (/release (10|11)\./.test(release.text) || trial) && this.fs.existsSync('/usr/bin/qml-runner');
     var current=this.fs.existsSync(BASE+'/native-home') ? 'native' : this.fs.existsSync(BASE+'/additional-overlay') ? 'overlay' : 'legacy';
     var ownership=this.ownership(), owner=ownership.owner, homeMounts=ownership.homeMounts, glass=ownership.glass;
@@ -329,7 +334,7 @@ var messages={
     launch_changed:'Configuration changed. Review and confirm again.',
     launch_scan_unknown:'A running mapper could not be inspected. Use --additional-overlay or inspect Diagnose.',
     launch_rollback_changed:'A concurrent mapper edit was preserved. The recovery journal was retained for inspection.',
-    launch_unsupported:'Direct system HOME requires webOS 10/11 (or the trial on 7 to 9) and qml-runner.'
+    launch_unsupported:'Direct system HOME requires webOS 10/11 (or the trial on 6 to 9) and qml-runner.'
 };
 if(require.main===module) {
     var integration=new Integration(), cmd=process.argv[2];

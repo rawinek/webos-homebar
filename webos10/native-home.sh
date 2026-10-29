@@ -1,5 +1,5 @@
 #!/bin/sh
-# Experimental direct Home on webOS 10/11 (and a trial on 7 to 9). No Input Hook, no native UI rewrite:
+# Experimental direct Home on webOS 10/11 (and a trial on 6 to 9). No Input Hook, no native UI rewrite:
 # SAM starts the TV's QML runner under the Home identity. Restore is explicit.
 set -eu
 BASE=/var/lib/webosbrew/rawin-launcher-home
@@ -10,8 +10,8 @@ HOME_ID=com.webos.app.home
 DB=9969c85c6e1c20a73a4ac456d46e31f7
 STORE=/home/root/.local/share
 luna() { luna-send -n 1 "luna://com.webos.applicationManager/$1" "$2" </dev/null; }
-# webOS 10/11, or 7 to 9 where the owner started the trial (install.sh --try-native-home).
-native_ok() { grep -qE 'release (10|11)\.' /etc/starfish-release || { [ -f "$BASE/native-trial" ] && grep -qE 'release (7|8|9)\.' /etc/starfish-release; }; }
+# webOS 10/11, or 6 to 9 where the owner started the trial (install.sh --try-native-home).
+native_ok() { grep -qE 'release (10|11)\.' /etc/starfish-release || { [ -f "$BASE/native-trial" ] && grep -qE 'release (6|7|8|9)\.' /etc/starfish-release; }; }
 stop_panels() {
     mode=${1:-all}
     # Directory identity alone misses another launcher's nested/binary mount.

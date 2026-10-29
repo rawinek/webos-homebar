@@ -122,7 +122,7 @@ if foreign && [ "$mode" = native ]; then
     echo 'Another launcher owns Home; disable its Home replacement first' >&2; exit 1
 fi
 if [ "$mode" = native ]; then
-    { grep -qE 'release (10|11)\.' /etc/starfish-release || { [ -f "$BASE/native-trial" ] && grep -qE 'release (7|8|9)\.' /etc/starfish-release; }; } || { echo 'Native Home currently supports webOS 10/11 only' >&2; exit 1; }
+    { grep -qE 'release (10|11)\.' /etc/starfish-release || { [ -f "$BASE/native-trial" ] && grep -qE 'release (6|7|8|9)\.' /etc/starfish-release; }; } || { echo 'Native Home currently supports webOS 10/11 only' >&2; exit 1; }
     sh "$BASE/native-home.sh" check-owner
 elif [ -f "$BASE/additional-overlay" ] && [ ! -f "$BASE/native-home" ]; then
     exit 0

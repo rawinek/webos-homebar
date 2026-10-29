@@ -97,8 +97,9 @@ or_note() { out=$("$@" 2>/dev/null); if [ -n "$out" ]; then echo "$out"; else ec
         echo "native Home: system HOME dispatch; no Input Hook binding required"
     fi
     if [ -f "$OVERLAY_BASE/native-trial.log" ]; then
-        section "Native Home trial (webOS 7 to 9)"
+        section "Native Home trial (webOS 6 to 9)"
         cat "$OVERLAY_BASE/native-trial.log"
+        if [ -f /tmp/homebar-home-qml.log ]; then echo "-- Homebar's QML host output"; tail -n 40 /tmp/homebar-home-qml.log; fi
     fi
     show /home/root/.config/lginputhook/keybinds.json
     echo

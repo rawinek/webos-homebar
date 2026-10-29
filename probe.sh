@@ -99,7 +99,7 @@ case "$1" in
     panel) panel_fits; r=$?; printf '%s\n' "$panel_why"; full_home_note; exit $r ;;
     full-home) full_home_note ;;
     native-home)
-        grep -qE 'release (10|11)\.' /etc/starfish-release || [ -f /var/lib/webosbrew/rawin-launcher-home/native-trial ] || { echo 'Native Home requires webOS 10/11 (webOS 7 to 9: install.sh --try-native-home)'; exit 1; }
+        grep -qE 'release (10|11)\.' /etc/starfish-release || [ -f /var/lib/webosbrew/rawin-launcher-home/native-trial ] || { echo 'Native Home requires webOS 10/11 (webOS 6 to 9: install.sh --try-native-home)'; exit 1; }
         [ -x /usr/bin/qml-runner ] || { echo 'qml-runner is missing'; exit 1; }
         overlay_fits native; r=$?; printf '%s\n' "$overlay_why"
         [ "$r" = 0 ] || exit "$r"

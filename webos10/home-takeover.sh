@@ -17,6 +17,17 @@ BASE=/var/lib/webosbrew/rawin-launcher-home
 STAGE=$BASE/app
 HOME_TYPE=web
 if [ -f "$BASE/native-home" ]; then STAGE=$BASE/native-app; HOME_TYPE=qml; fi
+# webOS 6 (trial): sam cannot read a mounted Home again there (it has no
+# blockSystemApp), and LG's Home is a native program that sam starts with its
+# launch data. The program is what gets replaced: a script bind-mounted over
+# it runs the TV's qml-runner on the staged QML host with that same data.
+# qml-runner calls sam on the app's behalf under its own bus name, so the
+# role tied to LG's program does not matter.
+EXE=/usr/bin/com.webos.app.home
+WRAPPER=$BASE/home-exe
+EXE_MODE=
+if [ -f "$BASE/native-home" ] && grep -qE 'release 6\.' /etc/starfish-release; then EXE_MODE=1; fi
+CHECKPOINTS="/mnt/lg/cmn_data/checkpoint/com.webos.app.home /tmp/checkpoint/com.webos.app.home"
 TAG=rawin-launcher
 # The system log and, with the seconds since boot, the launcher's boot log
 # (cleared with /tmp at every boot; diagnose.sh shows it).
@@ -24,6 +35,11 @@ log() { logger -t $TAG "$1"; echo "$(cut -d' ' -f1 /proc/uptime)s $1" >>/tmp/raw
 
 inode() { ls -di "$1" 2>/dev/null | awk '{print $1}'; }
 mounted() {
+  if [ -n "$EXE_MODE" ]; then
+    [ -n "$(inode "$WRAPPER")" ] && [ "$(inode "$EXE")" = "$(inode "$WRAPPER")" ] || return 1
+    [ ! -f "$BASE/integration.js" ] || [ "$(node "$BASE/integration.js" owner)" = native ]
+    return
+  fi
   [ -n "$(inode "$STAGE")" ] && [ "$(inode "$HOMEAPP")" = "$(inode "$STAGE")" ] || return 1
   # A later nested/binary mount can replace Home while its directory stays ours.
   [ ! -f "$BASE/integration.js" ] || case "$(node "$BASE/integration.js" owner)" in native|legacy) return 0 ;; *) return 1 ;; esac
@@ -64,6 +80,31 @@ lg_home_pids() {
   pidof com.webos.app.home 2>/dev/null | tr ' ' '\n'
 }
 
+# The program sam starts for Home on webOS 6, and LG's saved image of its
+# running Home (CRIU), which sam would restore instead of starting anything:
+# an empty folder is mounted over each image folder while Homebar is Home.
+write_wrapper() {
+  cat >"$WRAPPER" <<EOF
+#!/bin/sh
+# Homebar (webOS 6 trial): sam starts this in place of LG Home's program, with
+# its launch data; qml-runner runs Homebar's QML host with that data instead.
+exec /usr/bin/qml-runner --main file://$STAGE/main.qml "\$@" >>/tmp/homebar-home-qml.log 2>&1
+EOF
+  chmod 755 "$WRAPPER"
+}
+hide_checkpoints() {
+  mkdir -p "$BASE/no-checkpoint"
+  for target in $CHECKPOINTS; do
+    [ -d "$target" ] || continue
+    grep -qF " $target " /proc/mounts || mount -o bind "$BASE/no-checkpoint" "$target"
+  done
+}
+show_checkpoints() {
+  for target in $CHECKPOINTS; do
+    if [ "$(inode "$target")" = "$(inode "$BASE/no-checkpoint")" ]; then umount "$target" 2>/dev/null; fi
+  done
+}
+
 case "$1" in
   apply)
     [ -f "$STAGE/appinfo.json" ] || exit 0
@@ -80,6 +121,23 @@ case "$1" in
     # sam answers only once it is up (at boot this hook runs early).
     for _ in $(seq 60); do luna getAppInfo '{"id":"com.webos.app.home"}' | ok && break; sleep 2; done
     log 'stand-in: app manager up'
+    if [ -n "$EXE_MODE" ]; then
+      if ! mounted && grep -qE " ($EXE|$HOMEAPP)(/[^ ]*)? " /proc/mounts; then
+        log 'another Home mount is present; refusing takeover'
+        exit 1
+      fi
+      [ -x /usr/bin/qml-runner ] && [ -f "$STAGE/main.qml" ] || { log 'no qml-runner or no staged host: LG Home kept'; exit 1; }
+      if ! mounted; then
+        write_wrapper
+        hide_checkpoints
+        mount --bind "$WRAPPER" "$EXE" || { show_checkpoints; log 'mount over the Home program failed: LG Home kept'; exit 1; }
+      fi
+      # LG's running Home goes; sam starts the program again when Home is
+      # next asked for, and that is now the script.
+      for pid in $(pidof com.webos.app.home 2>/dev/null); do kill "$pid" 2>/dev/null; done
+      log 'qml Homebar in place of the Home program'
+      exit 0
+    fi
     # Never stack a takeover over an unrelated launcher or a different mode.
     if ! mounted && grep -qF " $HOMEAPP " /proc/mounts; then
       log 'another Home mount is present; refusing takeover'
@@ -101,6 +159,17 @@ case "$1" in
   restore)
     # Never close or reread a Home instance owned by a different launcher.
     mounted || exit 0
+    if [ -n "$EXE_MODE" ]; then
+      # Stopped before and after the unmount: sam may start the script again
+      # in between (it preloads Home), and only LG's program may remain.
+      sh "$BASE/native-home.sh" stop
+      umount "$EXE" || exit 1
+      sh "$BASE/native-home.sh" stop-home
+      show_checkpoints
+      luna closeByAppId '{"id":"com.webos.app.home"}' >/dev/null
+      log 'LG Home program given back'
+      exit 0
+    fi
     # SAM's preload manager can respawn the QML host between stopping it and
     # unmounting its files. Block Home first, then stop again under that block.
     # Releasing below happens only after the original manifest is visible.
@@ -118,7 +187,7 @@ case "$1" in
     log 'LG Home given back'
     ;;
   status)
-    if mounted; then echo "stand-in mounted"; else echo "LG Home"; fi
+    if mounted; then echo "stand-in mounted$([ -n "$EXE_MODE" ] && echo ' over the Home program')"; else echo "LG Home"; fi
     luna getAppInfo '{"id":"com.webos.app.home"}' | grep -o '"type": *"[a-z]*"'
     echo "LG Home pids: $(lg_home_pids | tr '\n' ' ')"
     ;;

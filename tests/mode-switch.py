@@ -126,6 +126,27 @@ def test():
   assert not t.p(BASE+'/native-home').exists() and t.p(HOME).is_symlink()==linked and t.p(KEYS).read_bytes()==before
   assert 'Home after' in t.p(BASE+'/native-trial.log').read_text();count+=1
  finally:t.clean()
+ # The trial on webOS 6: sam cannot reread Home there, so a script takes the
+ # place of Home's program and runs qml-runner on the staged host; given back
+ # on the way to the overlay, and at once when no host comes up.
+ EXE='/usr/bin/com.webos.app.home'
+ for host in [True,False]:
+  t=TV(release='6.5.3')
+  try:
+   t.put(EXE,'lg-home-program');t.p('/usr/bin/qml-runner').chmod(0o755);t.put(HOME+'/appinfo.json','{"type":"native"}');t.put(BASE+'/native-trial','')
+   if host:t.put('/proc/4242/cmdline',str(t.root)+'/usr/bin/qml-runner\0--main\0file:///x/main.qml\0{"appId":"com.webos.app.home"}\0')
+   t.switch('native',host)
+   log=t.p(BASE+'/native-trial.log').read_text();assert 'Home program:' in log and 'qml-runner takes --main' in log,log
+   if host:
+    assert t.p(BASE+'/native-home').exists() and t.p(EXE).is_symlink() and not t.p(HOME).is_symlink()
+    wrapper=t.p(BASE+'/home-exe').read_text()
+    assert re.search(r'^exec \S*/usr/bin/qml-runner --main file:///',wrapper,re.M) and BASE+'/native-app/main.qml' in wrapper and '"$@"' in wrapper,wrapper
+    assert 'verify: type=native' in log and 'PASS' in log,log
+    assert t.run('native-home.sh','check-owner').returncode==0
+    t.switch('overlay')
+   assert not t.p(EXE).is_symlink() and t.p(EXE).read_text()=='lg-home-program'
+   assert not t.p(BASE+'/native-home').exists() or not host;count+=1
+  finally:t.clean()
  t=TV(mapper=False)
  try:
   t.switch('native');t.switch('overlay');assert not t.p(KEYS).exists();count+=1
