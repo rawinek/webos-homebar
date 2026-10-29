@@ -60,6 +60,8 @@ The picture stays where it is. Press HOME again, or BACK, and it is gone.
   a favourite, input or optional shortcut from the Home row.
 - **Ten languages**, the TV's own by default: English, Spanish, German,
   Polish, French, Italian, Portuguese (Portugal and Brazil), Dutch and Czech.
+- **The TV's load**, if you want it: processor, memory and network speed as
+  small figures in the top bar (off by default, *Launcher settings → Top bar*).
 - **The weather** in the corner, next to the clock, from Open-Meteo with no
   account or key. The place is chosen on a phone, from a code on the TV.
 - **Updates itself** from this repository's releases, in *Launcher settings

@@ -98,7 +98,7 @@ def input_icon_files():
 def shared_files():
     """The setup server (weather, the place page, its QR code), run by the
     overlay's helper and by the Home panel's boot hook alike."""
-    return [ROOT / "shared" / name for name in ("setup.js", "qr.js", "guard.js", "setup.html")]
+    return [ROOT / "shared" / name for name in ("setup.js", "qr.js", "guard.js", "stats.js", "setup.html")]
 
 
 def webos10_ipk(spec, version):

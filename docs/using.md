@@ -193,7 +193,7 @@ at *Larger* and the 12-hour clock:
 | | After holding BACK | Compatibility overlay and System HOME: the last input, TV, any physical input (including hidden ones), or *Do nothing* (Homebar leaves the TV to LG). In System HOME this applies when an app leaves no full-screen card; ordinary HOME over a playing app does not switch inputs. Additional overlay and the older Home panel leave returns to LG |
 | Apps | Apps order | The TV's order, A to Z, or the most used first |
 | | Hidden apps | Hidden, or shown dimmed in *Apps* (to bring one back with RED) |
-| Top bar | Items | A box for the clock, the app on screen and the weather: OK shows the chosen one in the chip or hides it |
+| Top bar | Items | A box for the clock, the app on screen and the weather: OK shows the chosen one in the chip or hides it. Three more boxes, **off by default**, add the TV's load to the chip: *Processor* (`CPU 22%`), *Memory* (`RAM 60%`, memory in use, caches not counted) and *Network* (`↓ 35 kB/s  ↑ 5.1 MB/s`, the current rates on the real interfaces). They refresh every two seconds while Home is up, and nothing is read while they are off |
 | | Clock format | 24-hour (16:05) or 12-hour (4:05 PM); the backup's time follows it |
 | | Weather place | The place of the weather; a code on the right opens a page on a phone to choose it |
 | | Temperature | *Automatic* (°F when the TV's language is set for the United States, else °C), Celsius or Fahrenheit |

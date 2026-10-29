@@ -170,6 +170,24 @@ FocusScope {
     // Home opens and every quarter of an hour while it is open; the server
     // keeps an answer for a quarter of an hour too.
     property var weather: ({ok: false})
+    // The load of the TV in the chip (Launcher settings → Top bar → Items), from
+    // the setup server's /stats, asked every two seconds while Home is up. Each
+    // part is off until switched on. The server sends the rates as bytes per second.
+    property var stats: ({ok: false})
+    readonly property bool anyStats: settings.statCpu === true || settings.statMem === true || settings.statNet === true
+    function rateText(bytesPerSecond) {
+        var k = bytesPerSecond / 1000;
+        return k >= 1000 ? (k / 1000).toFixed(1) + " MB/s" : Math.round(k) + " kB/s";
+    }
+    function statsParts() {
+        var parts = [];
+        if (stats.ok !== true) return parts;
+        if (settings.statCpu === true && typeof stats.cpu === "number") parts.push("CPU " + stats.cpu + "%");
+        if (settings.statMem === true && stats.mem) parts.push("RAM " + stats.mem.pct + "%");
+        if (settings.statNet === true && stats.net) parts.push("↓ " + rateText(stats.net.down) + "  ↑ " + rateText(stats.net.up));
+        return parts;
+    }
+    readonly property var statsText: statsParts()
     readonly property bool weatherShown: settings.weather && weather.ok === true
     // Older cached answers have no apparent value; show the standard reading
     // until the next refresh rather than leaving the chip blank.
@@ -253,6 +271,9 @@ FocusScope {
             list.push({id: "clock", title: t("set_clock"), on: settings.clock !== false});
             list.push({id: "nowApp", title: t("set_now_app"), on: settings.nowApp !== false});
             list.push({id: "weather", title: t("set_weather"), on: settings.weather !== false});
+            list.push({id: "statCpu", title: t("set_stat_cpu"), on: settings.statCpu === true});
+            list.push({id: "statMem", title: t("set_stat_mem"), on: settings.statMem === true});
+            list.push({id: "statNet", title: t("set_stat_net"), on: settings.statNet === true});
         }
         return list;
     }
@@ -729,6 +750,7 @@ FocusScope {
         if (key === "exitTo") exitTargetChosen(value);
         if (key === "beta" && isUpdateIdle()) updateStep("check");
         if (key === "weather" && value) loadWeather();
+        if ((key === "statCpu" || key === "statMem" || key === "statNet") && value) loadStats();
         if (key === "timeout") noteActivity();
     }
     // The settings as saved, each checked, with the defaults for the rest.
@@ -768,6 +790,10 @@ FocusScope {
             // screen and the weather follow it until they are set themselves.
             nowApp: s.nowApp === undefined ? s.clock !== false : s.nowApp !== false,
             weather: s.weather === undefined ? s.clock !== false : s.weather !== false,
+            // The load of the TV in the chip: each off until switched on.
+            statCpu: s.statCpu === true,
+            statMem: s.statMem === true,
+            statNet: s.statNet === true,
             units: s.units === "c" || s.units === "f" ? s.units : "auto",
             temperature: s.temperature === "apparent" ? "apparent" : "standard",
             hours: s.hours === "12" ? "12" : "24",
@@ -1448,6 +1474,7 @@ FocusScope {
             tick();
             if (ready) { launchCheckRequested(); catalog.callService({}); foregroundInfo.callService({extraInfo: true}); loadInputs(); dailyUpdateCheck(); }
             loadWeather();
+            loadStats();
         }
     }
     onLangChanged: if (ready) launchCheckRequested()
@@ -1489,6 +1516,12 @@ FocusScope {
         setupGet("/weather?units=" + units, function(r) { if (r && r.ok) weather = r; });
     }
     onUnitsChanged: loadWeather()
+    // A failed answer keeps the last numbers; the next one replaces them.
+    function loadStats() {
+        if (!anyStats) return;
+        setupGet("/stats", function(r) { if (r && r.ok) stats = r; });
+    }
+    Timer { interval: 2000; repeat: true; running: shell.foreground && shell.anyStats; onTriggered: loadStats() }
     Timer { interval: 900000; repeat: true; running: shell.foreground && shell.settings.weather; onTriggered: loadWeather() }
     // The place page's address and the place now; the weather again when
     // the place was changed on a phone.
@@ -1906,13 +1939,22 @@ FocusScope {
         Rectangle {
             id: status
             readonly property bool showApp: shell.settings.nowApp && nowTitle !== ""
-            visible: showApp || shell.weatherShown || shell.settings.clock
+            visible: showApp || shell.weatherShown || shell.settings.clock || shell.statsText.length > 0
             anchors.right: parent.right; anchors.rightMargin: shell.margin; y: shell.px(32)
             width: statusRow.width + shell.px(48); height: Math.max(shell.px(56), statusRow.height + shell.px(22)); radius: shell.px(18)
             color: shell.surface; border.width: 1; border.color: shell.theme.surfaceEdge
             Row {
                 id: statusRow
                 anchors.centerIn: parent; spacing: shell.px(18)
+                // The load of the TV, small and plain, before the rest of the chip.
+                Row {
+                    visible: shell.statsText.length > 0; spacing: shell.px(16); anchors.verticalCenter: parent.verticalCenter
+                    Repeater {
+                        model: shell.statsText
+                        Text { text: modelData; font.family: shell.fontName; font.pixelSize: shell.pt(17); color: shell.theme.hint; anchors.verticalCenter: parent.verticalCenter }
+                    }
+                }
+                Rectangle { visible: shell.statsText.length > 0 && (status.showApp || shell.weatherShown || shell.settings.clock); width: 1; height: shell.pt(20); color: shell.theme.divider; anchors.verticalCenter: parent.verticalCenter }
                 Row {
                     visible: status.showApp; spacing: shell.px(10); anchors.verticalCenter: parent.verticalCenter
                     Rectangle { width: shell.px(7); height: width; radius: width/2; color: shell.theme.focus; anchors.verticalCenter: parent.verticalCenter }

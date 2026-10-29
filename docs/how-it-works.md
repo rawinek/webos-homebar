@@ -160,6 +160,10 @@ webOS 4's node 0.12), on port 8898: the overlay's helper starts it in its own
 process, and on webOS 4 the boot hook starts it as its own `node` process.
 It serves:
 
+- `/stats`, to the panel on `127.0.0.1` only: the TV's load for the status
+  chip, read from `/proc` (`shared/stats.js`): processor and network rates are
+  the change since the previous ask, so nothing runs between two asks, and the
+  panel asks only while one of the three boxes under *Top bar → Items* is on.
 - `/weather` and `/info`, to the panel on `127.0.0.1` only: the weather now
   (Open-Meteo, over plain HTTP: node 0.12's TLS is too old for most of the
   web) and the address of the place page, with that address as a QR code

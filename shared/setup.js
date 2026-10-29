@@ -7,7 +7,8 @@
 //   - the page a phone opens to choose that place (setup.html), which looks
 //     the place up with Open-Meteo's geocoding itself;
 //   - the address of that page as a QR code, which the panel draws.
-// The panel asks on 127.0.0.1 alone (/info, /weather). The page and its
+// The panel asks on 127.0.0.1 alone (/info, /weather, /stats: the load of the
+// TV for the status chip, stats.js). The page and its
 // calls (/place) answer anyone on the network who has the token from the
 // code, which is new each time the server starts. Only the place is kept, in
 // weather.json in the folder given. Plain ES5 over plain HTTP: on webOS 4 this
@@ -21,6 +22,7 @@ var crypto = require('crypto');
 var urlModule = require('url');
 var qr = require('./qr');
 var guard = require('./guard');
+var stats = require('./stats');
 
 var PORT = 8898;
 var WEATHER_TTL = 15 * 60 * 1000;
@@ -33,6 +35,7 @@ function start(base) {
   var rev = 0;
   var auto = null, autoAt = 0, autoWaiting = null;
   var cache = {};
+  var sampler = new stats.Sampler(function (file) { try { return fs.readFileSync(file, 'utf8'); } catch (e) { return ''; } });
 
   function getJSON(url, done) {
     var finished = false;
@@ -146,6 +149,9 @@ function start(base) {
         return currentPlace(function (p) {
           send(res, 200, {ok: true, url: link, qr: link ? qr.encode(link) : null, place: placeInfo(p), rev: rev});
         });
+      }
+      if (url.pathname === '/stats' && isLocal(req) && guard.hostOk(req, PORT)) {
+        return send(res, 200, sampler.sample());
       }
       if (url.pathname === '/weather' && isLocal(req) && guard.hostOk(req, PORT)) {
         return weather(query.units === 'f' ? 'f' : 'c', function (w) { send(res, 200, w); });

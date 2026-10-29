@@ -62,7 +62,7 @@ cp "$HERE/apply.sh" "$HERE/uninstall.sh" "$HERE/../update.sh" "$HERE/../diagnose
 cp "$HERE/../probe.sh" "$HERE/patch-home.js" "$BASE/"
 # The setup server (the weather and the page to choose its place), started by apply.sh.
 mkdir -p "$BASE/setup"
-cp "$HERE/../shared/setup.js" "$HERE/../shared/qr.js" "$HERE/../shared/guard.js" "$HERE/../shared/setup.html" "$BASE/setup/"
+cp "$HERE/../shared/setup.js" "$HERE/../shared/qr.js" "$HERE/../shared/guard.js" "$HERE/../shared/stats.js" "$HERE/../shared/setup.html" "$BASE/setup/"
 chmod 755 "$BASE/apply.sh" "$BASE/uninstall.sh" "$BASE/update.sh" "$BASE/probe.sh"
 mkdir -p /var/lib/webosbrew/init.d
 ln -sf "$BASE/apply.sh" "$HOOK"
