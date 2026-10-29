@@ -19,6 +19,7 @@ log() { logger -t rawin-launcher "$1"; echo "$(cut -d' ' -f1 /proc/uptime)s $1" 
 root=/usr/palm/applications/com.webos.app.home/qml
 main=$root/main.qml
 ctrl=$root/Controllers/UIController.qml
+[ -f "$ctrl" ] || ctrl=$root/UserInterfaceLayer/UIController.qml
 
 # Mount each file unless it is already ours; refuse firmware files that are
 # neither ours nor the originals the patch was made from (after an update).

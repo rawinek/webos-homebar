@@ -7,14 +7,14 @@
 #   Home panel  the panel inside LG's own QML Home (webOS 3 to 5, e.g. an LG C9;
 #               webOS 4 and 5 tested)
 #   system HOME Homebar replaces LG's Home: no Input Hook, no mapper (webOS 10
-#               and 11; a trial on 7 to 9 with --try-native-home)
+#               and 11; a trial on 6 to 9 with --try-native-home)
 #   overlay     an overlay app with a root helper next to LG's Home: HOME bound
 #               in Input Hook, or an app tile / a mapped button (--additional-overlay)
 # Options:
 #   --home-panel       the Home panel, or fail (no overlay instead)
 #   --overlay          the overlay, or fail (needs Input Hook and node 8+)
 #   --native-home      system HOME on webOS 10/11 (the default there on a fresh install)
-#   --try-native-home  a trial of that on webOS 7, 8 or 9: it writes a log to report
+#   --try-native-home  a trial of that on webOS 6, 7, 8 or 9: it writes a log to report
 #   --additional-overlay  keep the main Home; configure a button in your mapper
 #   --probe            only say which variant fits and why; change nothing
 #   --keep-lg-home     overlay: leave LG's Home in place (no black stand-in)
@@ -67,9 +67,9 @@ esac
 say "webOS ${version:-unknown}$name ($tested)"
 if [ -n "$trial" ]; then
     case "$major" in
-        7|8|9) say "trial of the native System HOME (experimental): LG Home is given back at once if it does not come up" ;;
-        10|11) fail "--try-native-home is for webOS 7 to 9; use --native-home here" ;;
-        *) fail "--try-native-home is for webOS 7 to 9 only (this is ${version:-unknown})" ;;
+        6|7|8|9) say "trial of the native System HOME (experimental): LG Home is given back at once if it does not come up" ;;
+        10|11) fail "--try-native-home is for webOS 6 to 9; use --native-home here" ;;
+        *) fail "--try-native-home is for webOS 6 to 9 only (this is ${version:-unknown})" ;;
     esac
 fi
 

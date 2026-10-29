@@ -5,7 +5,7 @@
 - [Update](#update)
 - [Uninstall](#uninstall)
 - [Launch method](#launch-method)
-- [Trying System HOME on webOS 7 to 9](#trying-system-home-on-webos-7-to-9)
+- [Trying System HOME on webOS 6 to 9](#trying-system-home-on-webos-6-to-9)
 
 ## Requirements
 
@@ -53,12 +53,12 @@ Installer options:
 | Option | What it does |
 | :--- | :--- |
 | `--probe` | Only says which variant fits this TV and why; changes nothing |
-| `--home-panel` | The panel inside LG's Home, or fail (no overlay instead) |
+| `--home-panel` | The panel inside LG's Home, or fail (no overlay instead). On the full-screen Home of webOS 6 it is experimental and only installed with this flag |
 | `--overlay` | The overlay app with the root helper, or fail |
 | `--keep-lg-home` | Overlay: leave LG's Home in place; *System → Original Home* opens it |
 | `--replace-lg-home` | Overlay on an untested webOS: put the black stand-in in LG Home's place anyway (on webOS 10 it always is) |
 | `--native-home` | System HOME on webOS 10/11, without an Input Hook binding. See [Launch method](#launch-method) |
-| `--try-native-home` | A trial of System HOME on **webOS 7, 8 or 9** (not 10/11, not 6 or older): it writes a log to report. See [Trying System HOME on webOS 7 to 9](#trying-system-home-on-webos-7-to-9) |
+| `--try-native-home` | A trial of System HOME on **webOS 6, 7, 8 or 9** (not 10/11, not 5 or older): it writes a log to report. See [Trying System HOME on webOS 6 to 9](#trying-system-home-on-webos-6-to-9) |
 | `--additional-overlay` | Keep the main Home (LG's, Luma's or Glasshouse's); Homebar is added and you map a button to it |
 | `--home-key=CODE` | Overlay: bind this key code as HOME (the number Input Hook logs for it) |
 | `--home-key=ask` | Overlay: ask for a press of HOME, also when a key is already bound |
@@ -205,11 +205,11 @@ Do not map HOME this way in the additional overlay: HOME stays with LG Home,
 Luma or Glasshouse. Homebar does not choose a button for you; switching
 methods only backs up and restores its own earlier rules, as described above.
 
-### Trying System HOME on webOS 7 to 9
+### Trying System HOME on webOS 6 to 9
 
-System HOME is tested on webOS 10 only. Other launchers replace LG's Home on
-webOS 7 and 9 as well (Glasshouse), so it may work there, but nobody has tried
-Homebar's version. If you would like to find out on your TV (Homebrew Channel
+System HOME is tested on webOS 10, and the trial worked on an LG C1 with
+webOS 6.5.3. Other launchers replace LG's Home on webOS 7 and 9 as well
+(Glasshouse), so it may work there, but nobody has tried Homebar's version. If you would like to find out on your TV (Homebrew Channel
 and a root shell as for any install):
 
 ```sh
@@ -218,7 +218,8 @@ sh install.sh --try-native-home
 
 What it does: it allows System HOME on this TV, switches to it, and checks
 within 25 seconds that the app manager reports a QML Home and that a
-`qml-runner` runs it. **If that check fails, LG Home is given back at once** and
+`qml-runner` runs it (on webOS 6 the app manager keeps calling Home native,
+and the running `qml-runner` is what counts). **If that check fails, LG Home is given back at once** and
 the trial option is removed again. If it passes, press HOME and see what
 happens. In either case it writes the log to `/tmp/homebar-native-trial.txt`;
 the same text is in `sh /var/lib/webosbrew/rawin-launcher-home/diagnose.sh`
@@ -234,5 +235,7 @@ and what you saw when pressing HOME (Homebar, LG Home, a black screen, nothing).
 While the trial is on, *Launcher settings → Launch method* shows that it is
 experimental and offers both modes, so you can switch back to *Additional
 overlay* there. Uninstalling (`sh /var/lib/webosbrew/rawin-launcher-home/uninstall.sh`)
-gives LG Home back. webOS 6 and older are not covered: there the app manager
-cannot reread a replaced Home, and other launchers use a different method.
+gives LG Home back. On webOS 6 the app manager cannot reread a replaced Home,
+so there the trial replaces LG Home's program instead (as Luma does): a script
+mounted over it runs the system's `qml-runner` on Homebar's host. webOS 5 and
+older are not covered.

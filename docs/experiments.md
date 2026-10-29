@@ -69,8 +69,9 @@ test TVs:
 - **Tested:** an LG B4 on webOS 10.3.1: install, update, switching between
   System HOME and the additional overlay in both directions, reboots in each
   method, uninstall and a clean install. webOS 11 and other TVs are untested;
-  webOS 7 to 9 have the opt-in trial (`--try-native-home`,
-  [install](install.md#trying-system-home-on-webos-7-to-9)).
+  webOS 6 to 9 have the opt-in trial (`--try-native-home`,
+  [install](install.md#trying-system-home-on-webos-6-to-9)); it worked on an LG C1 with webOS 6.5.3, where
+  it replaces LG Home's program instead of its manifest.
 - **It is not a new renderer.** The firmware's QML runner hosts the same panel
   under LG Home's id with lifecycle v2; a shorter HOME path may help startup and
   keeping the process, but not the QML rendering cost. Compare physical HOME,

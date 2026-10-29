@@ -83,7 +83,7 @@ Launch method* changes it where more than one fits.
 | Method | What it is | Needs | Typical TV |
 | :--- | :--- | :--- | :--- |
 | **Home panel** | The panel runs *inside* LG's own QML Home, which keeps HOME, its window and its lifecycle | Root only | webOS 4 and 5 (e.g. LG C9) |
-| **System HOME (native)** | Homebar replaces LG's Home: HOME opens it directly. On webOS 9 to 11 LG's own Home is a Flutter app; Homebar puts its own QML host in its place | Root only; no Input Hook, no mapper | webOS 10 and 11 (e.g. LG B4); a trial on 7 to 9 |
+| **System HOME (native)** | Homebar replaces LG's Home: HOME opens it directly. On webOS 9 to 11 LG's own Home is a Flutter app; Homebar puts its own QML host in its place | Root only; no Input Hook, no mapper | webOS 10 and 11 (e.g. LG B4); a trial on 6 to 9 (works on an LG C1, webOS 6.5) |
 | **Additional overlay** | A separate app and root helper next to your Home. LG Home (or Luma, Glasshouse) keeps HOME; Homebar opens from its **app tile** or from a button you map | Input Hook or Magic Mapper for a button (not for the tile) | webOS 6 or newer (checked on 10) |
 
 The overlay can also take HOME itself, through a binding in Input Hook
@@ -97,7 +97,7 @@ installs use. An update never changes the method.
 | 3.x (2016–2017) | Home panel, if the patch fits | Untested |
 | 4.x (webOS 4.0 / 4.5, 2018–2019) | Home panel (on a TV with two Home screens, set to *Basic*) | Tested on 4.10 (LG C9, and UM7100, B9 and E9 by users) |
 | 5.x (webOS 5.0, 2020) | Home panel | Tested on 5.6 (LG NANO80, UN73 and UN90, by users) |
-| 6.x (webOS 6.0, 2021) | Overlay, HOME via Input Hook (or the additional overlay) | Tested on 6.3 and 6.5 (LG C1 and UP78, by users) |
+| 6.x (webOS 6.0, 2021) | Overlay, HOME via Input Hook (or the additional overlay); System HOME as a trial | Tested on 6.3 and 6.5 (LG C1 and UP78, by users); System HOME on a C1 (6.5.3, by a user) |
 | 7.x (webOS 22, 2022) | Overlay, HOME via Input Hook; System HOME as a trial | Overlay tested on 7.5 (by a user); System HOME untested |
 | 8.x, 9.x (webOS 23, 24) | Overlay, HOME via Input Hook; System HOME as a trial | Untested |
 | 10.x (webOS 25, 2025) | **System HOME (native)**, or the additional overlay | Tested on 10.3: LG B4 (System HOME), LG UR78 (overlay, by a user) |
@@ -151,7 +151,7 @@ System HOME); LG's Home comes back at once.
 ```sh
 sh rawin-launcher/install.sh --probe             # what would be installed, and why; changes nothing
 sh rawin-launcher/install.sh                      # the method that fits
-sh rawin-launcher/install.sh --try-native-home    # webOS 7, 8 or 9: a trial of System HOME
+sh rawin-launcher/install.sh --try-native-home    # webOS 6, 7, 8 or 9: a trial of System HOME
 ```
 
 The trial gives LG's Home back at once if the app manager does not take
@@ -159,7 +159,7 @@ Homebar's, and writes `/tmp/homebar-native-trial.txt`. Whether it worked or
 not, open an [issue](https://github.com/rawinek/webos-homebar/issues) with the
 TV model, the webOS version, what HOME did, and that file (for an ordinary
 install, the file from `diagnose.sh`). That is how new TVs get on the list. See
-[Trying System HOME on webOS 7 to 9](docs/install.md#trying-system-home-on-webos-7-to-9).
+[Trying System HOME on webOS 6 to 9](docs/install.md#trying-system-home-on-webos-6-to-9).
 
 Homebar was called **rawin-launcher** until 0.12.0. The release file and the
 folders on the TV keep that name, so earlier installs update in place, and the

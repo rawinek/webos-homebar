@@ -60,7 +60,9 @@ or_note() { out=$("$@" 2>/dev/null); if [ -n "$out" ]; then echo "$out"; else ec
     # The Home panel: LG reads our patched copies only while they are mounted
     # over the firmware files.
     if [ -f "$PANEL_BASE/main.qml" ]; then
-        if cmp -s "$PANEL_BASE/main.qml" "$HOME_QML/main.qml" && cmp -s "$PANEL_BASE/UIController.qml" "$HOME_QML/Controllers/UIController.qml"; then
+        uictrl=$HOME_QML/Controllers/UIController.qml
+        [ -f "$uictrl" ] || uictrl=$HOME_QML/UserInterfaceLayer/UIController.qml
+        if cmp -s "$PANEL_BASE/main.qml" "$HOME_QML/main.qml" && cmp -s "$PANEL_BASE/UIController.qml" "$uictrl"; then
             echo "patched Home QML in place: yes"
         else
             echo "patched Home QML in place: no (the boot hook did not mount it, or LG Home changed)"
@@ -95,8 +97,9 @@ or_note() { out=$("$@" 2>/dev/null); if [ -n "$out" ]; then echo "$out"; else ec
         echo "native Home: system HOME dispatch; no Input Hook binding required"
     fi
     if [ -f "$OVERLAY_BASE/native-trial.log" ]; then
-        section "Native Home trial (webOS 7 to 9)"
+        section "Native Home trial (webOS 6 to 9)"
         cat "$OVERLAY_BASE/native-trial.log"
+        if [ -f /tmp/homebar-home-qml.log ]; then echo "-- Homebar's QML host output"; tail -n 40 /tmp/homebar-home-qml.log; fi
     fi
     show /home/root/.config/lginputhook/keybinds.json
     echo
@@ -127,6 +130,31 @@ or_note() { out=$("$@" 2>/dev/null); if [ -n "$out" ]; then echo "$out"; else ec
     section "System log (rawin-launcher lines)"
     NOTE="(none in /var/log/messages; on webOS 10 logger lines do not reach it: see Boot log)"
     or_note sh -c "cat /var/log/messages* 2>/dev/null | grep -i -E 'rawin' | grep -v -E 'NL_(VSC|SOUND|APP_LAUNCH_BEGIN|APP_INSTALLED)' | tail -n 40"
+
+    # The Home panel runs inside LG's Home process: when the panel does not
+    # come up, what that process logged about our QML is the only trace.
+    if [ -f "$PANEL_BASE/main.qml" ]; then
+        section "Home panel: patched QML and what the Home process logged"
+        echo "patched main.qml mounted: $(grep -q cleanHomeLoader "$HOME_QML/main.qml" 2>/dev/null && echo yes || echo no)"
+        echo "panel files: $(ls "$PANEL_BASE/current" 2>/dev/null | tr '\n' ' ')"
+        echo "Home process: $(pidof com.webos.app.home 2>/dev/null || echo none)"
+        echo "-- what the panel logged (/tmp/rawin-launcher-panel.log)"
+        NOTE="(none: the panel never reached the setup server)"
+        or_note tail -n 150 /tmp/rawin-launcher-panel.log
+        # Whether the app underneath can show through: the type of window LG's
+        # executable gives Home, and what its QML says about window types.
+        echo "-- Home's window (LG's manifest, the executable's window types, the compositor)"
+        grep -o -E '"(defaultWindowType|transparent|handleScreenRemoteKey|lifecycle[A-Za-z]*)" *: *[^,}]*' "${HOME_QML%/qml}/appinfo.json" 2>/dev/null
+        echo "window types in /usr/bin/com.webos.app.home: $(grep -a -o -E '_WEBOS_WINDOW_TYPE_[A-Z_]+' /usr/bin/com.webos.app.home 2>/dev/null | sort -u | tr '\n' ' ')"
+        find "$HOME_QML" -name '*.qml' 2>/dev/null | grep -v -E '\.original\.qml$' | while read -r f; do
+            grep -n -E 'windowType|WINDOW_TYPE|setWindowProperty|isHalfMode *[:=]|transparent|fullscreen' "$f" 2>/dev/null | cut -c1-160 | sed "s|^|${f#$HOME_QML/}:|"
+        done | head -n 40
+        NOTE="(no lines about Home's window in /var/log/messages)"
+        or_note sh -c "cat /var/log/messages* 2>/dev/null | grep -E 'surfaceItem_com\.webos\.app\.home|Swap fullscreen|fullscreenRequested' | grep -v keyPressEvent | tail -n 20"
+        echo "-- Home and QML lines in the system log (key presses left out)"
+        NOTE="(no Home or QML lines in /var/log/messages or the journal)"
+        or_note sh -c "{ cat /var/log/messages* 2>/dev/null; command -v journalctl >/dev/null 2>&1 && journalctl -n 3000 --no-pager 2>/dev/null; } | grep -i -E 'com\.webos\.app\.home|cleanHome|Launcher\.qml|FavouriteStore|Themes\.js|Strings\.js|WebOSServices|qml.*(error|warn|fail|unavailable)|(error|warn|fail).*qml' | grep -v -E 'keyPressEvent|LS_DEPRECATED|sdx\.logging|NUDGE|pqcontroller|videooutputd|eplmanager|AudioD|memchute|miracast|airplay|voiceconductor|NL_(VSC|SOUND|APP_LAUNCH_BEGIN|APP_INSTALLED)|SUBSCRIPTION_REPLY|RunningList' | tail -n 80"
+    fi
 } >"$OUT" 2>&1
 
 echo "rawin-launcher: diagnostics written to $OUT"

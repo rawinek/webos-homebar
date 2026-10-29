@@ -9,6 +9,10 @@
 # it next to diagnose.sh, with patch-home.js, so an installed TV can run it.
 HERE=$(cd "$(dirname "$0")" && pwd)
 HOME_QML=/usr/palm/applications/com.webos.app.home/qml
+# Home's UI controller: in Controllers/ on the ribbon Home (webOS 4 and 5), in
+# UserInterfaceLayer/ on the full-screen Home (webOS 6).
+UICTRL=$HOME_QML/Controllers/UIController.qml
+[ -f "$UICTRL" ] || UICTRL=$HOME_QML/UserInterfaceLayer/UIController.qml
 APPS=/media/developer/apps/usr/palm/applications
 HBC=/media/developer/apps/usr/palm/services/org.webosbrew.hbchannel.service
 PANEL_BASE=/var/lib/webosbrew/rawin-launcher
@@ -26,14 +30,12 @@ detail() { printf '%s\n' "$1" | sed 's/^rawin-launcher: //; s/^/rawin-launcher: 
 panel_why=
 panel_fits() {
     [ -f "$HOME_QML/main.qml" ] || { panel_why="LG Home is not a QML app (no $HOME_QML/main.qml)"; return 1; }
-    # webOS 6 and later: a QML Home, but the full-screen one, not the ribbon
-    # the patch was made for.
-    [ -f "$HOME_QML/Controllers/UIController.qml" ] ||
-        { panel_why="LG Home is a QML app, but not the ribbon Home the panel is made for (no Controllers/UIController.qml)"; return 1; }
+    [ -f "$UICTRL" ] ||
+        { panel_why="LG Home is a QML app, but has no UIController.qml (in Controllers/ or UserInterfaceLayer/): not a Home the panel is made for"; return 1; }
     command -v node >/dev/null || { panel_why="node is missing on this TV"; return 1; }
     [ -f "$PATCH" ] || { panel_why="patch-home.js is missing next to this script"; return 1; }
     tmp=$(mktemp -d)
-    if grep -qF " $HOME_QML/main.qml " /proc/mounts || grep -qF " $HOME_QML/Controllers/UIController.qml " /proc/mounts; then
+    if grep -qF " $HOME_QML/main.qml " /proc/mounts || grep -qF " $UICTRL " /proc/mounts; then
         if [ -f "$PANEL_BASE/main.original.qml" ] && [ -f "$PANEL_BASE/UIController.original.qml" ]; then
             cp "$PANEL_BASE/main.original.qml" "$PANEL_BASE/UIController.original.qml" "$tmp/"
         else
@@ -41,12 +43,18 @@ panel_fits() {
         fi
     else
         cp "$HOME_QML/main.qml" "$tmp/main.original.qml"
-        cp "$HOME_QML/Controllers/UIController.qml" "$tmp/UIController.original.qml"
+        cp "$UICTRL" "$tmp/UIController.original.qml"
     fi
     [ -f "$HOME_QML/AppInitializer/SystemProperties.qml" ] && cp "$HOME_QML/AppInitializer/SystemProperties.qml" "$tmp/SystemProperties.original.qml"
     panel_why=$(node "$PATCH" --check "$tmp" 2>&1)
     r=$?
     rm -rf "$tmp"
+    # The full-screen Home of webOS 6 is new to the patch: never picked on its own.
+    if [ "$r" = 0 ] && [ "$UICTRL" != "$HOME_QML/Controllers/UIController.qml" ]; then
+        panel_why="$panel_why
+This is the full-screen Home of webOS 6, which the panel has not run in yet: it is only installed on request (sh install.sh --home-panel)"
+        return 1
+    fi
     return $r
 }
 # Some webOS 4 and 5 TVs (the 2019 UM series, a 2020 NANO80) also have LG's "New" Home screen,
@@ -91,7 +99,7 @@ case "$1" in
     panel) panel_fits; r=$?; printf '%s\n' "$panel_why"; full_home_note; exit $r ;;
     full-home) full_home_note ;;
     native-home)
-        grep -qE 'release (10|11)\.' /etc/starfish-release || [ -f /var/lib/webosbrew/rawin-launcher-home/native-trial ] || { echo 'Native Home requires webOS 10/11 (webOS 7 to 9: install.sh --try-native-home)'; exit 1; }
+        grep -qE 'release (10|11)\.' /etc/starfish-release || [ -f /var/lib/webosbrew/rawin-launcher-home/native-trial ] || { echo 'Native Home requires webOS 10/11 (webOS 6 to 9: install.sh --try-native-home)'; exit 1; }
         [ -x /usr/bin/qml-runner ] || { echo 'qml-runner is missing'; exit 1; }
         overlay_fits native; r=$?; printf '%s\n' "$overlay_why"
         [ "$r" = 0 ] || exit "$r"

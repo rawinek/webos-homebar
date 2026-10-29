@@ -117,9 +117,16 @@ loss rolls back, and afterwards the card that was in front is brought back and
 the panel opened above it. `native-home.sh disable` copies Homebar's database
 back and restores the earlier Homebar binding; other key bindings stay.
 
-On webOS 7 to 9 the same method is a trial (`--try-native-home`): the install
+On webOS 6 to 9 the same method is a trial (`--try-native-home`): the install
 checks that SAM reports a QML Home with a running host and gives LG's Home back
-otherwise, and writes a log for a report. See
+otherwise, and writes a log for a report. webOS 6 has no block and release of
+a system app, so SAM cannot reread a mounted Home there; instead a script is
+bind-mounted over LG Home's program (`/usr/bin/com.webos.app.home`), which SAM
+starts with its launch data, and runs `qml-runner --main` on Homebar's host
+with that data. `qml-runner` calls SAM for the app under its own bus name, so
+the role of LG's program does not matter; LG's saved image of its Home (CRIU)
+is hidden so SAM starts the program. The window is the same overlay as on
+webOS 10. See
 [the notes](experiments.md#direct-system-home).
 
 ## Additional overlay

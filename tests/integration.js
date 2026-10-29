@@ -36,6 +36,7 @@ check(f=>{f.mm({home:own},true);f.fail();assert.throws(()=>f.integration.clean('
 check(f=>{f.mm({home:own});f.integration.clean('native',BASE+'/journal');f.put(CFG,{home:{function:'screen_off'}});assert.throws(()=>f.integration.rollback(BASE+'/journal'),/launch_rollback_changed/);assert.strictEqual(f.json(CFG).home.function,'screen_off');});
 check(f=>{f.mm({home:own});f.put(BASE+'/mapper-backup.json','invalid');assert.throws(()=>f.integration.clean('native',BASE+'/journal'),/launch_config_unknown/);assert.deepStrictEqual(f.json(CFG).home,own);});
 check(f=>{f.put('/proc/mounts','other /usr/bin/com.webos.app.home none rw 0 0');assert.strictEqual(f.integration.inspect().owner,'other');assert.throws(()=>f.integration.assertNative(),/launch_home_other/);});
+check(f=>{f.put(BASE+'/home-exe','#!/bin/sh');f.put('/usr/bin/qml-runner','runner');fs.symlinkSync(f.real(BASE+'/home-exe'),f.real('/usr/bin/com.webos.app.home'));f.put('/proc/mounts','/dev/x /usr/bin/com.webos.app.home ext4 rw 0 0');assert.strictEqual(f.integration.inspect().owner,'native','our script over the Home program (webOS 6 trial)');});
 check(f=>{f.put('/proc/mounts','other /usr/palm/applications/com.webos.app.home/qml/main.qml none rw 0 0');assert.strictEqual(f.integration.inspect().owner,'other');});
 check(f=>{f.put('/var/lib/tvweb/home.json',{enabled:true});assert.strictEqual(f.integration.inspect().owner,'other');f.put(BASE+'/additional-overlay','');const r=f.integration.inspect();assert(r.blockers.length);assert(!r.issues.some(i=>i.code==='launch_home_other'));});
 check(f=>{f.put(IH,{'773':{action:'launch',id:'other'}});assert.throws(()=>f.integration.assertNative(),/launch_home_mapping/);assert.throws(()=>f.integration.legacyKey('773',false),/launch_home_mapping/);assert.strictEqual(f.json(IH)['773'].id,'other');});
@@ -62,6 +63,8 @@ check(f=>{f.put('/tmp/inputhook','');f.setProcesses([['sh','-c','touch /tmp/inpu
 check(f=>{f.put('/etc/starfish-release','release 9.2.2');const r=f.integration.inspect();assert(!r.nativeSupported&&!r.trial,'webOS 9 without the trial');});
 check(f=>{f.put('/etc/starfish-release','release 9.2.2');f.put(BASE+'/native-trial','');const r=f.integration.inspect();assert(r.nativeSupported&&r.trial,'webOS 9 with the trial');});
 check(f=>{f.put('/etc/starfish-release','release 7.5.0');f.put(BASE+'/native-trial','');assert(f.integration.inspect().nativeSupported);});
-check(f=>{f.put('/etc/starfish-release','release 6.3.2');f.put(BASE+'/native-trial','');assert(!f.integration.inspect().nativeSupported,'webOS 6 stays out');});
+check(f=>{f.put('/etc/starfish-release','release 6.3.2');assert(!f.integration.inspect().nativeSupported,'webOS 6 without the trial');});
+check(f=>{f.put('/etc/starfish-release','release 6.5.3');f.put(BASE+'/native-trial','');const r=f.integration.inspect();assert(r.nativeSupported&&r.trial,'webOS 6 with the trial');});
+check(f=>{f.put('/etc/starfish-release','release 5.5.0');f.put(BASE+'/native-trial','');assert(!f.integration.inspect().nativeSupported,'webOS 5 stays out');});
 check(f=>{f.put(BASE+'/native-trial','');const r=f.integration.inspect();assert(r.nativeSupported&&!r.trial,'webOS 10 is not a trial');});
 console.log('PASS',count,'integration cases: schema-aware cleanup, preservation, conditional lists, reload, rollback, changed config');

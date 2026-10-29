@@ -1,7 +1,7 @@
 # Homebar documentation
 
 - [Install, update, uninstall](install.md): requirements, installer options, launch
-  method, trying System HOME on webOS 7 to 9, updating from the TV or by hand
+  method, trying System HOME on webOS 6 to 9, updating from the TV or by hand
 - [Using the launcher](using.md): Home, favourites, Apps, System, every
   setting, languages
 - [Themes](themes.md): the nine colour themes, what each colour does, with

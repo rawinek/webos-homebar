@@ -65,7 +65,7 @@ does with the key (*HOME button (Input Hook)*).
 
 ## HOME does nothing (System HOME)
 
-On webOS 10 and 11 (and the trial on 7 to 9) HOME is Homebar's own Home. If it
+On webOS 10 and 11 (and the trial on 6 to 9) HOME is Homebar's own Home. If it
 shows LG's Home, nothing, or a black screen:
 
 - `sh /var/lib/webosbrew/rawin-launcher-home/takeover.sh status` says whether
@@ -131,7 +131,7 @@ works for any version.
 `sh install.sh --probe` (or `probe.sh`, see [Diagnose](#diagnose)) says
 which method fits the TV and why, before anything is changed;
 `--home-panel`, `--native-home`, `--additional-overlay` and `--overlay` force one;
-`--try-native-home` tries System HOME on webOS 7 to 9 and writes
+`--try-native-home` tries System HOME on webOS 6 to 9 and writes
 `/tmp/homebar-native-trial.txt` to attach to an issue. What can happen on a webOS that
 was never tested:
 
