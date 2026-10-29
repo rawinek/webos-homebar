@@ -75,15 +75,86 @@ function injection(ROOT) {
     '    // that has none to read: the panel shows whenever Home is in front and',
     '    // LG\'s ribbon was not asked for.',
     '    property bool cleanHomeForeground: true',
-    '    onCleanHomeForegroundChanged: { if (cleanHomeForeground) { cleanHomeStock = false; cleanHomeHidden = false; } }',
+    '    onCleanHomeForegroundChanged: {',
+    '        ' + ROOT + '.cleanHomeLog("foreground " + cleanHomeForeground);',
+    '        if (cleanHomeForeground) { cleanHomeStock = false; cleanHomeHidden = false; if (cleanHomeLoader.item) cleanHomeLoader.item.forceActiveFocus(); }',
+    '    }',
+    '    onCleanHomeStockChanged: ' + ROOT + '.cleanHomeLog("LG Home shown " + cleanHomeStock)',
+    '    onCleanHomeHiddenChanged: ' + ROOT + '.cleanHomeLog("panel hidden " + cleanHomeHidden)',
+    // On a Home never tested, nothing else records what the panel went
+    // through: LG's own log lines and QML warnings do not reach
+    // /var/log/messages. The setup server keeps these lines in
+    // /tmp/rawin-launcher-panel.log, which diagnose.sh prints.
+    '    property int cleanHomeKeys: 0',
+    '    function cleanHomeLog(text) {',
+    '        try {',
+    '            var x = new XMLHttpRequest();',
+    '            x.open("POST", "http://127.0.0.1:8898/panel-log");',
+    '            x.send(String(text));',
+    '        } catch (e) {}',
+    '    }',
+    '    function cleanHomeName(item) {',
+    '        for (var p = item; p; p = p.parent) {',
+    '            if (p === cleanHomeLoader.item) return "panel" + (p === item ? "" : " " + String(item).split("(")[0]);',
+    '            if (p === uiController) return "LG Home" + (p === item ? "" : " " + String(item).split("(")[0]);',
+    '        }',
+    '        return item ? String(item).split("(")[0] : "none";',
+    '    }',
+    // Window.window is Qt 5.7 and later: written into main.qml it would stop
+    // LG Home from loading on Qt 5.6 (webOS 4), so the Loader makes a reader
+    // at run time, where an error is caught and the window stays unknown.
+    '    property var cleanHomeWin: null',
+    '    property var cleanHomeWinReader: null',
+    '    function cleanHomeWindow() { return ' + ROOT + '.cleanHomeWin || null; }',
+    '    onCleanHomeWinChanged: {',
+    '        var w = cleanHomeWin;',
+    '        if (!w) return;',
+    '        ' + ROOT + '.cleanHomeLog(' + ROOT + '.cleanHomeWindowInfo());',
+    '        w.activeFocusItemChanged.connect(function () {',
+    '            try { ' + ROOT + '.cleanHomeLog("focus " + ' + ROOT + '.cleanHomeName(w.activeFocusItem)); } catch (e) {}',
+    '        });',
+    '    }',
+    // The window LG's executable made (type, size, colour), as far as QML can
+    // read it: whether the app underneath can show through depends on it.
+    '    function cleanHomeWindowInfo() {',
+    '        var w = ' + ROOT + '.cleanHomeWindow(), out = [];',
+    '        if (!w) return "window: not readable";',
+    '        for (var k in w) {',
+    '            try {',
+    '                var v = w[k];',
+    '                if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") out.push(k + "=" + String(v).slice(0, 80));',
+    '                else if (v && typeof v === "object" && /propert|type/i.test(k)) out.push(k + "=" + JSON.stringify(v).slice(0, 300));',
+    '            } catch (e) {}',
+    '        }',
+    '        return "window: " + out.join(" ");',
+    '    }',
+    '    Connections {',
+    '        target: ' + ROOT,
+    '        ignoreUnknownSignals: true',
+    '        onActiveChanged: ' + ROOT + '.cleanHomeLog("Home active " + ' + ROOT + '.active)',
+    '    }',
     '    Loader {',
     '        id: cleanHomeLoader',
     '        z: 500',
     '        anchors.fill: parent',
     '        source: "file:///var/lib/webosbrew/rawin-launcher/current/Launcher.qml"',
     '        visible: !' + ROOT + '.cleanHomeStock && !' + ROOT + '.cleanHomeHidden',
+    // On the Loader, not the root: LG's root has its own Component.onCompleted.
+    '        Component.onCompleted: {',
+    '            try {',
+    '                ' + ROOT + '.cleanHomeWinReader = Qt.createQmlObject("import QtQuick 2.4; import QtQuick.Window 2.2; Item { property var w: Window.window }", cleanHomeLoader);',
+    '                ' + ROOT + '.cleanHomeWin = Qt.binding(function () { return ' + ROOT + '.cleanHomeWinReader.w; });',
+    '            } catch (e) { ' + ROOT + '.cleanHomeLog("window: not readable (" + e + ")"); }',
+    '        }',
     '        onStatusChanged: {',
+    '            ' + ROOT + '.cleanHomeLog("panel status " + ["null", "ready", "loading", "error"][status] +',
+    '                (status === Loader.Error ? ": " + Qt.createComponent(source).errorString() : ""));',
     '            if (status === Loader.Error) ' + ROOT + '.cleanHomeStock = true;',
+    '        }',
+    // Keys the panel left unanswered come up here on their way to LG's UI.
+    '        Keys.onPressed: {',
+    '            if (' + ROOT + '.cleanHomeKeys < 40) { ' + ROOT + '.cleanHomeKeys++; ' + ROOT + '.cleanHomeLog("key " + event.key + " not taken by the panel"); }',
+    '            event.accepted = false;',
     '        }',
     '        onLoaded: {',
     '            item.hostWindow = ' + ROOT + ';',
@@ -94,6 +165,8 @@ function injection(ROOT) {
     '            item.ready = props && props.isAppReadyToUse !== undefined',
     '                ? Qt.binding(function() { return systemProperties.isAppReadyToUse; }) : true;',
     '            item.foreground = Qt.binding(function() { return ' + ROOT + '.cleanHomeForeground && !' + ROOT + '.cleanHomeStock && !' + ROOT + '.cleanHomeHidden; });',
+    '            item.forceActiveFocus();',
+    '            ' + ROOT + '.cleanHomeLog("panel loaded; foreground " + ' + ROOT + '.cleanHomeForeground + ", ready " + item.ready + ", panel has focus " + item.activeFocus);',
     '        }',
     '    }',
     '    Connections {',
@@ -165,10 +238,17 @@ main = replaceOnce(main, /^([ \t]*)id:[ \t]*uiController[ \t]*$/m, function (m) 
 main = replaceOnce(main, /^([ \t]*)function focusIn\(\)[ \t]*\{/m, function (m) {
   return m[0] + '\n' + m[1] + '    ' + ROOT + '.cleanHomeStock = false; ' + ROOT + '.cleanHomeHidden = false;';
 }, 'function focusIn()', false);
+// Without focusIn() (the full-screen Home of webOS 6) the root hands focus to
+// LG's controller whenever Home becomes active, and the panel, which has to
+// answer the remote, never gets it: keys reach the window and go nowhere.
+if (!/^[ \t]*function focusIn\(\)/m.test(main)) main = replaceOnce(main, /\(uiController\.forceActiveFocus\(\), true\)/, function (m) {
+  return '((' + ROOT + '.cleanHomeStock || !cleanHomeLoader.item ? uiController : cleanHomeLoader.item).forceActiveFocus(), true)';
+}, "the root's focus hand-over", false);
 // BLUE, while LG's ribbon is shown, brings the panel back.
 main = replaceOnce(main, /^([ \t]*)function keyPressEvent\((\w+)\)[ \t]*\{/m, function (m) {
   var ind = m[1] + '    ', key = m[2];
   return [m[0],
+    ind + 'if (' + ROOT + '.cleanHomeKeys < 40) { ' + ROOT + '.cleanHomeKeys++; ' + ROOT + '.cleanHomeLog("keyPressEvent " + ' + key + ' + ", LG Home shown " + ' + ROOT + '.cleanHomeStock); }',
     ind + 'if (' + ROOT + '.cleanHomeHidden) {',
     ind + '    ' + ROOT + '.cleanHomeHidden = false;',
     ind + '    if (cleanHomeLoader.item) cleanHomeLoader.item.forceActiveFocus();',

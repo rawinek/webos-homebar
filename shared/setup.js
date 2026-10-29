@@ -7,7 +7,7 @@
 //   - the page a phone opens to choose that place (setup.html), which looks
 //     the place up with Open-Meteo's geocoding itself;
 //   - the address of that page as a QR code, which the panel draws.
-// The panel asks on 127.0.0.1 alone (/info, /weather). The page and its
+// The panel asks on 127.0.0.1 alone (/info, /weather, /panel-log). The page and its
 // calls (/place) answer anyone on the network who has the token from the
 // code, which is new each time the server starts. Only the place is kept, in
 // weather.json in the folder given. Plain ES5 over plain HTTP: on webOS 4 this
@@ -25,6 +25,7 @@ var guard = require('./guard');
 var PORT = 8898;
 var WEATHER_TTL = 15 * 60 * 1000;
 var AUTO_TTL = 6 * 3600 * 1000;
+var PANEL_LOG = '/tmp/rawin-launcher-panel.log';
 
 function start(base) {
   var placeFile = path.join(base, 'weather.json');
@@ -136,6 +137,20 @@ function start(base) {
     var a = req.connection && req.connection.remoteAddress;
     return a === '127.0.0.1' || a === '::ffff:127.0.0.1' || a === '::1';
   }
+  // What the Home panel went through (loading, focus, keys), sent by the
+  // patched LG Home on a webOS it was not tested on: nothing else records it
+  // there. diagnose.sh prints the file; it is cut back to the newer half at
+  // 64 KB and is gone after a reboot.
+  function panelLog(text) {
+    var line = new Date().toISOString() + ' ' + String(text).replace(/[\r\n]+/g, ' ').slice(0, 1000) + '\n';
+    try {
+      if (fs.statSync(PANEL_LOG).size > 65536) {
+        var old = fs.readFileSync(PANEL_LOG, 'utf8');
+        fs.writeFileSync(PANEL_LOG, old.slice(old.indexOf('\n', old.length / 2) + 1));
+      }
+    } catch (e) {}
+    try { fs.appendFileSync(PANEL_LOG, line); } catch (e) {}
+  }
   function placeInfo(p) { return p ? {name: p.name, auto: !!p.auto} : null; }
 
   var server = http.createServer(function (req, res) {
@@ -149,6 +164,9 @@ function start(base) {
       }
       if (url.pathname === '/weather' && isLocal(req) && guard.hostOk(req, PORT)) {
         return weather(query.units === 'f' ? 'f' : 'c', function (w) { send(res, 200, w); });
+      }
+      if (url.pathname === '/panel-log' && req.method === 'POST' && isLocal(req) && guard.hostOk(req, PORT)) {
+        return readBody(req, function (text) { panelLog(text); send(res, 200, {ok: true}); });
       }
       if (url.pathname === '/' && req.method === 'GET') return send(res, 200, page, 'text/html; charset=utf-8');
       if (url.pathname === '/place') {
