@@ -41,6 +41,8 @@ run(setup=lambda t:t.put(m.KEYS,json.dumps({'773':{'action':'launch','id':'other
 run(setup=lambda t:t.put('/home/root/magic_mapper.py','unknown fork'),expected='overlay')
 run(setup=lambda t:t.put(m.BASE+'/VERSION','0.17.2'),expected='legacy')
 run('4.10.0',setup=lambda t:t.put('/var/lib/webosbrew/rawin-launcher/VERSION','0.17.2'),expected='panel')
+# Files of LG's QML Home patched by another tool do not turn a fresh install into the additional overlay.
+run('4.10.0',panel=True,setup=lambda t:t.put('/proc/mounts','fake '+str(t.p('/usr/palm/applications/com.webos.app.home/qml/Components/CustomRibbon.qml'))+' ext4 rw 0 0\n'),expected='panel')
 # The trial of the native Home: webOS 7 to 9 only, and it says so.
 for release in ('7.5.0','8.3.0','9.2.2'):
  out=run(release,args=('--try-native-home',),expected='legacy');assert '--try-native' in out and '--keep-lg-home' not in out,out

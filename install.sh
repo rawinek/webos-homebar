@@ -98,6 +98,9 @@ fi
 # automatic takeover. The same inspector supplies the settings UI.
 if [ -z "$force" ] && [ -f /var/lib/webosbrew/rawin-launcher-home/VERSION ]; then force=overlay; fi
 if [ -z "$force" ] && [ -f /var/lib/webosbrew/rawin-launcher/VERSION ]; then force=panel; fi
+# A Home that fits the panel gets the panel whatever else is mounted under it: files
+# patched by other tools (a Home-tuning hook, say) are not another launcher's Home.
+if [ -z "$force" ] && sh "$PROBE" panel >/dev/null 2>&1; then force=panel; fi
 choice=
 if [ -z "$force" ] && [ -f "$HERE/webos10/integration.js" ] && command -v node >/dev/null 2>&1; then
     choice=$(node "$HERE/webos10/integration.js" select 2>/dev/null) || fail "launch configuration could not be checked; run --probe"
