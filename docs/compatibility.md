@@ -15,7 +15,7 @@ ways. The installer picks by what the TV has, not by its version number:
 | :--- | :--- | :--- | :--- |
 | **Home panel** | The panel is loaded *inside* LG's Home, a QML app (webOS 4 and 5: the ribbon Home, e.g. LG C9); LG's HOME handling, window and lifecycle are kept | Root | webOS 3 to 5, where the patch fits |
 | **System HOME (native)** | Homebar replaces LG's Home. On webOS 9 to 11 LG's Home is a Flutter app; Homebar's own QML host (run by the system's `qml-runner`, with a native lifecycle) is mounted under LG Home's id (`com.webos.app.home`), so HOME, BACK out of an app and waking all open it. LG's files stay underneath, and the mount ends with a reboot (a boot hook applies it again) | Root; no Input Hook, no mapper | webOS 10 and 11 (tested on 10.3); webOS 6 to 9 as a trial (works on an LG C1 with 6.5.3) |
-| **Additional overlay** | A separate overlay app plus a root helper; LG Home (or Luma, Glasshouse) keeps HOME. Homebar opens from its app tile or from a button mapped in Input Hook or Magic Mapper | The tile: nothing; a button: Input Hook or Magic Mapper; node 8 or newer | webOS 6 or newer (checked on 10) |
+| **Additional overlay** | A separate overlay app plus a root helper; LG Home (or Luma, Glasshouse) keeps HOME. Homebar opens from its app tile or from a button set in Input Hook or Magic Mapper (*Launcher settings → Help → Remote button* does it) | The tile: nothing; a button: Input Hook or Magic Mapper; node 8 or newer | webOS 6 or newer (checked on 10) |
 
 The overlay can also bind HOME itself through Input Hook (*HOME via mapper*;
 on webOS 10 with a black stand-in in LG Home's place). That is the default on

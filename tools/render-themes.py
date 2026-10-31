@@ -47,6 +47,7 @@ def panel(app_dir):
     stubs = "".join("    QtObject { id: %s; function callService(a) {} }\n" % name for name in
                     ("launchService", "catalog", "foregroundInfo", "localeService", "inputService", "updateService", "backupService", "closeAppsService"))
     stubs += "    function loadInputs() {}\n    function updateRun(step, channel) {}\n    function backupRun(step, data) {}\n    function restartHomebar() {}\n    function modeRun(mode) {}\n"
+    stubs += "    function buttonLoadRun() {}\n    function buttonCaptureRun(id, fresh) {}\n    function buttonBindRun(code) {}\n    function buttonUnbindRun() {}\n"
     (app_dir / "Launcher.qml").write_text(q[:start] + stubs + q[end:])
     (app_dir / "WebOS.js").write_text(".pragma library\nvar Key_webOS_Back = 461;\nvar Key_webOS_Yellow = 405;\nvar Key_webOS_Red = 403;\n")
     for name in ("FavouriteStore.qml", "Strings.js", "Themes.js", "About.js", "DeviceIcons.js", "DeviceIcon.qml"):

@@ -41,6 +41,14 @@ Integration.prototype.processList = function() {
     });
     return result;
 };
+// HOME's key: 'home' in Magic Mapper; in Input Hook 773 on the tested Magic
+// Remotes, or the code the installer was given (--home-key), which legacyKey
+// keeps in home-key. Every other Homebar rule is the extra remote button.
+Integration.prototype.homeKey = function(kind) {
+    if(kind!=='input')return 'home';
+    var saved=this.read(BASE+'/home-key'), code=saved.state==='read' ? saved.text.trim() : '';
+    return /^[1-9]\d{0,4}$/.test(code) ? code : '773';
+};
 Integration.prototype.same = function(a, b) {
     try { var x=this.fs.statSync(a), y=this.fs.statSync(b); return x.ino === y.ino && x.dev === y.dev; } catch (e) { return false; }
 };
@@ -55,6 +63,24 @@ function ihOwn(v) {
     try { return JSON.parse(m[1]).id === APP; } catch (e) { return false; }
 }
 function mmOwn(v) { return object(v) && v.function === 'launch_app' && object(v.inputs) && v.inputs.app_id === APP; }
+// The remote's buttons by their kernel code, the number Input Hook and Magic
+// Mapper both go by: what Settings → Remote button shows. The coloured ones are
+// named by the panel in its language.
+var BUTTON_NAMES = {2:'1',3:'2',4:'3',5:'4',6:'5',7:'6',8:'7',9:'8',10:'9',11:'0',113:'Mute',114:'VOL -',115:'VOL +',
+    119:'Pause',128:'Stop',139:'Settings',167:'Record',168:'Rewind',174:'Exit',207:'Play',208:'Fast forward',217:'Search',
+    358:'Info',362:'Guide',398:'red',399:'green',400:'yellow',401:'blue',402:'CH +',403:'CH -',428:'Voice',771:'Channels',
+    787:'Channels',799:'...',829:'SAP',994:'...',1037:'Netflix',1038:'Prime Video',1042:'Disney+',1043:'LG Channels',
+    1044:'Rakuten TV',1083:'Search',1086:'Alexa',1107:'Sling',1116:'TV',1117:'Google',1123:'Home Hub',1124:'Accessibility'};
+// OK, the arrows, BACK and HOME drive the panel, and power stays the TV's.
+var RESERVED_BUTTONS = [28, 103, 105, 106, 108, 116, 412, 773];
+// Magic Mapper's own names for the codes, read from its BUTTONS table: its
+// configuration is keyed by name, and only the codes it lists can be mapped.
+function mmButtons(source) {
+    var block = /^BUTTONS\s*=\s*\{([\s\S]*?)^\}/m.exec(source || ''), names = {}, re = /^\s*(\d+)\s*:\s*["']([^"']+)["']/gm, m;
+    if (!block) return names;
+    while ((m = re.exec(block[1]))) names[m[1]] = m[2];
+    return names;
+}
 function actions(v) { return Array.isArray(v) ? v : [v]; }
 function removeOwn(value, kind) {
     if (kind === 'input') return ihOwn(value) ? undefined : value;
@@ -153,12 +179,12 @@ Integration.prototype.inspect = function() {
         if(data.state==='read' && own(data.value,'magic_mapper_settings') && !object(data.value.magic_mapper_settings))data.state='unknown';
         if (source.state === 'absent' && data.state === 'absent' && !active) return;
         mmInstalled=true;
-        var recognised=source.state==='read' && /^VERSION\s*=\s*["']1\.(?:0|1)\.0["']/m.test(source.text) && /def get_button_map\(/.test(source.text) && /magic_mapper_config\.json/.test(source.text) && /def launch_app\(/.test(source.text);
+        var recognised=source.state==='read' && /^VERSION\s*=\s*["']1\.[0-2]\.\d+["']/m.test(source.text) && /def get_button_map\(/.test(source.text) && /magic_mapper_config\.json/.test(source.text) && /def launch_app\(/.test(source.text);
         var match=launcher.state==='read' && /^SCRIPT=["']?([^\s"']+)["']?\s*$/m.exec(launcher.text);
         var reloadable=!!(match && match[1]===script && /\brestart\)/.test(launcher.text) && /^PYTHON_PIDFILE=\/tmp\/magic_mapper_python\.pid\s*$/m.test(launcher.text));
         signatures.push([script,source.text || source.state,launcher.text || launcher.state]);
         if (!recognised || data.state!=='read' || processUnknown) issue('launch_config_unknown','Magic Mapper',true);
-        else files.push({kind:'magic',file:self.fs.realpathSync ? self.fs.realpathSync(config) : config,data:data,active:active,reloadable:reloadable,script:script});
+        else files.push({kind:'magic',file:self.fs.realpathSync ? self.fs.realpathSync(config) : config,data:data,active:active,reloadable:reloadable,script:script,source:source.text});
     });
     var cleanup=0, mapped=[], restoreSkipped=false;
     files.forEach(function(f) {
@@ -167,7 +193,7 @@ Integration.prototype.inspect = function() {
             if (key==='magic_mapper_settings') return;
             var before=f.data.value[key], after=removeOwn(before,f.kind);
             if (!equal(before,after)) { f.changes.push({key:key,before:before,after:after}); cleanup++; mapped.push({source:f.kind==='input'?'Input Hook':'Magic Mapper',key:key}); }
-            var isHome=f.kind==='input' ? key==='773' : key==='home';
+            var isHome=key===self.homeKey(f.kind);
             if (isHome && after!==undefined && !homePass(after,f.kind,f.data.value.magic_mapper_settings)) issue('launch_home_mapping',f.kind==='input'?'Input Hook':'Magic Mapper',true);
         });
         if (f.kind==='magic' && f.active && f.changes.length && !f.reloadable) issue('launch_reload_unknown','Magic Mapper',true);
@@ -176,11 +202,11 @@ Integration.prototype.inspect = function() {
     if (inputInstalled && this.fs.existsSync('/tmp/inputhook') && runningScripts.length) issue('launch_two_mappers','',false);
     var companionMapped=files.some(function(f) {
         return Object.keys(f.data.value).some(function(key) {
-            return (f.kind==='input' ? key!=='773' : key!=='home') && !equal(f.data.value[key],removeOwn(f.data.value[key],f.kind));
+            return key!==self.homeKey(f.kind) && !equal(f.data.value[key],removeOwn(f.data.value[key],f.kind));
         });
     });
     if(current!=='native')files.forEach(function(f) {if(f.changes.length && !f.active)issue('launch_mapper_inactive',f.kind==='magic'?'Magic Mapper':'Input Hook',false);});
-    var homeOwn=files.some(function(f) { return f.changes.some(function(c) {return c.key===(f.kind==='input'?'773':'home');}); });
+    var homeOwn=files.some(function(f) { return f.changes.some(function(c) {return c.key===self.homeKey(f.kind);}); });
     if (current==='overlay' && (!companionMapped || homeOwn)) issue('launch_button_setup','',false);
     if (current==='native' && cleanup) issue('launch_mapping_returned','',false);
     if (current==='native' && owner==='lg') issue('launch_home_missing','',false);
@@ -260,7 +286,7 @@ Integration.prototype.clean = function(target,journal,expected) {
     var report=target==='native' ? this.assertNative(expected) : this.inspect(), self=this, writes=[];
     if(target==='uninstall' && report.blockers.some(function(i) {return /unknown/.test(i.code);}))throw error('launch_config_unknown');
     report.files.forEach(function(f) {
-        var next=JSON.parse(f.data.text), changes=f.changes.filter(function(c) {return target==='native' || target==='uninstall' || c.key===(f.kind==='input'?'773':'home');});
+        var next=JSON.parse(f.data.text), changes=f.changes.filter(function(c) {return target==='native' || target==='uninstall' || c.key===self.homeKey(f.kind);});
         if(!changes.length)return;
         if(f.kind==='magic' && f.active && !f.reloadable)throw error('launch_reload_unknown');
         changes.forEach(function(c) { if(c.after===undefined)delete next[c.key];else next[c.key]=c.after; });
@@ -282,7 +308,7 @@ Integration.prototype.restore = function(target,journal) {
         if(!f){skipped=true;return;}
         var before=f.data.text, next=JSON.parse(before), restored=[];
         entry.changes.forEach(function(c) {
-            if(target==='overlay' && c.key===(entry.kind==='input'?'773':'home'))return;
+            if(target==='overlay' && c.key===self.homeKey(entry.kind))return;
             var live=own(next,c.key) ? next[c.key] : undefined;
             if(equal(live,c.after)) {Object.defineProperty(next,c.key,{value:c.before,writable:true,enumerable:true,configurable:true});restored.push(c.key);}
             else if(!equal(live,c.before))skipped=true;
@@ -312,17 +338,117 @@ Integration.prototype.rollback = function(journal) {
     });
     this.reload(reload);
 };
+// HOME via mapper: HOME's code in Input Hook launches Homebar. Only the rule
+// on the earlier HOME code is replaced; the extra remote button stays.
 Integration.prototype.legacyKey = function(key, execute) {
-    if (!/^(0|[1-9]\d*)$/.test(key) || Number(key)>65535) throw error('launch_unknown');
-    var data=this.json(IH), next=data.state==='absent' ? {} : data.value;
+    if (!/^[1-9]\d{0,4}$/.test(key) || Number(key)>65535) throw error('launch_unknown');
+    var data=this.json(IH), next=data.state==='absent' ? {} : data.value, previous=this.homeKey('input');
     if(data.state==='unknown')throw error('launch_config_unknown');
     if(own(next,key) && !ihOwn(next[key]))throw error('launch_home_mapping');
-    Object.keys(next).forEach(function(k) {if(ihOwn(next[k]))delete next[k];});
+    if(own(next,previous) && ihOwn(next[previous]))delete next[previous];
     next[key]=execute ? {action:'exec',command:"/usr/bin/luna-send -n 1 luna://com.webos.applicationManager/launch '{\"id\":\"org.rawin.launcher\",\"noSplash\":true,\"spinner\":false}'"} : {action:'launch',id:APP};
     var file=data.state==='read' && this.fs.realpathSync ? this.fs.realpathSync(IH) : IH;
     this.saveMapper({kind:'input',file:file,mode:data.mode || 384},JSON.stringify(next));
+    this.atomic(BASE+'/home-key',key+'\n',420);
 };
-Integration.ihOwn=ihOwn;Integration.mmOwn=mmOwn;
+// The HOME code for the installer: the one kept in home-key, else (installs
+// before it was kept) 773 when that is Homebar's, else the first Homebar rule.
+Integration.prototype.legacyHome = function() {
+    var data=this.json(IH), saved=this.read(BASE+'/home-key');
+    if(saved.state==='read')return this.homeKey('input');
+    if(data.state!=='read')return '';
+    if(own(data.value,'773') && ihOwn(data.value['773']))return '773';
+    return Object.keys(data.value).filter(function(k) {return ihOwn(data.value[k]);})[0] || '';
+};
+// Settings → Remote button: one button besides HOME opens Homebar. It goes
+// to the mapper that is running (Input Hook first), or else to the one that is
+// installed; a button with someone else's action is never taken over.
+Integration.prototype.buttonTarget = function(report) {
+    var input=report.files.filter(function(f) {return f.kind==='input';})[0];
+    var magic=report.files.filter(function(f) {return f.kind==='magic';})[0];
+    if(!input && report.inputInstalled && this.json(IH).state==='absent')
+        input={kind:'input',file:IH,data:{state:'absent',text:'',value:{},mode:384},active:this.fs.existsSync('/tmp/inputhook')};
+    if(input && input.active)return input;
+    if(magic && magic.active)return magic;
+    return input || magic || null;
+};
+// What Settings → Remote button shows: Homebar's extra button(s), where a new
+// one would go (none: Homebar only reads the code for the user to set it up
+// elsewhere), whether that mapper runs now, and a reason it cannot be used.
+Integration.prototype.buttons = function(report) {
+    report=report || this.inspect();
+    var self=this, bound=[], target=this.buttonTarget(report), blocked=report.blockers.filter(function(i) {return /unknown/.test(i.code);})[0];
+    report.files.forEach(function(f) {
+        var codes={}, names=f.kind==='magic' ? mmButtons(f.source) : {};
+        Object.keys(names).forEach(function(c) { codes[names[c]]=Number(c); });
+        Object.keys(f.data.value).forEach(function(key) {
+            if(key==='magic_mapper_settings' || key===self.homeKey(f.kind))return;
+            var v=f.data.value[key];
+            if(equal(v,removeOwn(v,f.kind)))return;
+            var code=f.kind==='input' ? Number(key) : codes[key];
+            bound.push({mapper:f.kind,key:key,code:code || 0,name:BUTTON_NAMES[code] || (f.kind==='magic' ? key : '')});
+        });
+    });
+    return {mapper:target ? target.kind : '',active:!!(target && target.active),bound:bound,blocked:blocked ? blocked.code : ''};
+};
+Integration.prototype.buttonName = function(code) { return BUTTON_NAMES[code] || ''; };
+// The mapper files with Homebar's extra button taken out (HOME stays as the
+// launch method set it), plus the new button in target when one is given.
+// The mode switch's backup loses its extra-button entries too: restoring one
+// later would bring back a button that was changed or unpinned here.
+Integration.prototype.writeButtons = function(report, target, key) {
+    var self=this, writes=[], files=report.files.slice();
+    if(target && files.indexOf(target)<0)files.push(target);
+    files.forEach(function(f) {
+        var next=f.data.state==='read' ? JSON.parse(f.data.text) : {}, before=JSON.stringify(next);
+        Object.keys(next).forEach(function(k) {
+            if(k==='magic_mapper_settings' || k===self.homeKey(f.kind))return;
+            var after=removeOwn(next[k],f.kind);
+            if(after===undefined)delete next[k]; else next[k]=after;
+        });
+        if(f===target)next[key]=f.kind==='input' ? {action:'launch',id:APP} : {function:'launch_app',inputs:{app_id:APP}};
+        if(JSON.stringify(next)===before)return;
+        if(f.kind==='magic' && f.active && !f.reloadable)throw error('launch_reload_unknown');
+        writes.push({entry:{kind:f.kind,file:f.file,script:f.script,active:f.active,reloadable:f.reloadable,mode:f.data.mode || 384},
+            before:f.data.state==='read' ? f.data.text : null,after:JSON.stringify(next,null,2)+'\n'});
+    });
+    writes.forEach(function(w) {
+        var live=self.read(w.entry.file);
+        if(w.before===null ? live.state!=='absent' : (live.state!=='read' || live.text!==w.before))throw error('launch_changed');
+        self.saveMapper(w.entry,w.after);
+    });
+    this.reload(writes.map(function(w) {return w.entry;}));
+    var backup=this.json(BASE+'/mapper-backup.json');
+    if(backup.state==='read' && Array.isArray(backup.value.entries)) {
+        var kept=backup.value.entries.map(function(e) {
+            var c={}; Object.keys(e).forEach(function(k) {c[k]=e[k];});
+            c.changes=(e.changes || []).filter(function(ch) {return ch.key===self.homeKey(e.kind);});
+            return c;
+        }).filter(function(e) {return e.changes.length;});
+        if(!equal(kept,backup.value.entries))this.atomic(BASE+'/mapper-backup.json',JSON.stringify({entries:kept}),384);
+    }
+};
+Integration.prototype.bindButton = function(code) {
+    code=Number(code);
+    if(!(code>0 && code<=65535 && Math.floor(code)===code))throw error('button_unknown');
+    if(RESERVED_BUTTONS.indexOf(code)>=0 || String(code)===this.homeKey('input'))throw error('button_reserved');
+    var report=this.inspect(), state=this.buttons(report), target=this.buttonTarget(report);
+    if(state.blocked)throw error(state.blocked);
+    if(!target)throw error('button_no_mapper');
+    var key=target.kind==='input' ? String(code) : mmButtons(target.source)[code];
+    if(!key)throw error('button_unsupported');
+    var current=own(target.data.value,key) ? target.data.value[key] : undefined;
+    if(current!==undefined && removeOwn(current,target.kind)!==undefined)throw error('button_taken');
+    this.writeButtons(report,target,key);
+    return this.buttons();
+};
+Integration.prototype.unbindButton = function() {
+    var report=this.inspect(), state=this.buttons(report);
+    if(state.blocked)throw error(state.blocked);
+    this.writeButtons(report,null,null);
+    return this.buttons();
+};
+Integration.ihOwn=ihOwn;Integration.mmOwn=mmOwn;Integration.mmButtons=mmButtons;
 module.exports=Integration;
 var messages={
     launch_home_other:'Another launcher owns HOME. Disable its takeover or choose --additional-overlay.',
@@ -334,7 +460,12 @@ var messages={
     launch_changed:'Configuration changed. Review and confirm again.',
     launch_scan_unknown:'A running mapper could not be inspected. Use --additional-overlay or inspect Diagnose.',
     launch_rollback_changed:'A concurrent mapper edit was preserved. The recovery journal was retained for inspection.',
-    launch_unsupported:'Direct system HOME requires webOS 10/11 (or the trial on 6 to 9) and qml-runner.'
+    launch_unsupported:'Direct system HOME requires webOS 10/11 (or the trial on 6 to 9) and qml-runner.',
+    button_reserved:'OK, the arrows, BACK, HOME and power cannot open Homebar.',
+    button_taken:'That button already has another action in the mapper.',
+    button_no_mapper:'Neither Input Hook nor Magic Mapper is installed.',
+    button_unsupported:'Magic Mapper does not know that button.',
+    button_unknown:'Not a button code.'
 };
 if(require.main===module) {
     var integration=new Integration(), cmd=process.argv[2];
@@ -342,6 +473,10 @@ if(require.main===module) {
         if(cmd==='owner')console.log(integration.ownership().owner);
         else if(cmd==='inspect')console.log(JSON.stringify(integration.publicReport(integration.inspect())));
         else if(cmd==='legacy-mapper')integration.legacyMapper();
+        else if(cmd==='button-status')console.log(JSON.stringify(integration.buttons()));
+        else if(cmd==='button-bind')console.log(JSON.stringify(integration.bindButton(process.argv[3])));
+        else if(cmd==='button-unbind')console.log(JSON.stringify(integration.unbindButton()));
+        else if(cmd==='legacy-home')console.log(integration.legacyHome());
         else if(cmd==='legacy-key')integration.legacyKey(process.argv[3],process.argv[4]==='exec');
         else if(cmd==='legacy-check') { var legacy=integration.inspect(); var problem=legacy.blockers.filter(function(i) {return i.code!=='launch_home_other' && !(process.argv[3]==='magic' && i.code==='launch_home_mapping' && i.source==='Magic Mapper');})[0]; if(problem)throw error(problem.code); }
         else if(cmd==='check')integration.assertNative(process.argv[3]);

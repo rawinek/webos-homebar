@@ -67,4 +67,43 @@ check(f=>{f.put('/etc/starfish-release','release 6.3.2');assert(!f.integration.i
 check(f=>{f.put('/etc/starfish-release','release 6.5.3');f.put(BASE+'/native-trial','');const r=f.integration.inspect();assert(r.nativeSupported&&r.trial,'webOS 6 with the trial');});
 check(f=>{f.put('/etc/starfish-release','release 5.5.0');f.put(BASE+'/native-trial','');assert(!f.integration.inspect().nativeSupported,'webOS 5 stays out');});
 check(f=>{f.put(BASE+'/native-trial','');const r=f.integration.inspect();assert(r.nativeSupported&&!r.trial,'webOS 10 is not a trial');});
-console.log('PASS',count,'integration cases: schema-aware cleanup, preservation, conditional lists, reload, rollback, changed config');
+// Settings → Remote button: one extra button, to the running mapper, never over someone else's action.
+const ihLaunch={action:'launch',id:'org.rawin.launcher'};
+const mmScript='VERSION = "1.2.0"\nBUTTONS = {\n    398: "red",\n    399: "green",\n    773: "home",\n}\ndef get_button_map(): magic_mapper_config.json\ndef launch_app(inputs): pass';
+const mmWithButtons=(f,config,active)=>{f.mm(config,active);f.put(MM,mmScript);};
+check(f=>{f.put(IH,{'773':ihLaunch,'1042':{action:'launch',id:'other'}});f.put('/tmp/inputhook','');
+ let r=f.integration.bindButton(399);assert.deepStrictEqual(f.json(IH)['399'],ihLaunch);assert.deepStrictEqual(r.bound,[{mapper:'input',key:'399',code:399,name:'green'}]);
+ r=f.integration.bindButton(400);assert(!f.json(IH)['399']&&f.json(IH)['400']);assert.strictEqual(r.bound.length,1,'one button at a time');
+ assert.deepStrictEqual(f.json(IH)['773'],ihLaunch,'HOME stays as the launch method set it');assert.strictEqual(f.json(IH)['1042'].id,'other');
+ r=f.integration.unbindButton();assert(!f.json(IH)['400']);assert.strictEqual(r.bound.length,0);assert.deepStrictEqual(f.json(IH)['773'],ihLaunch);});
+check(f=>{f.put(IH,{'401':{action:'launch',id:'other'}});assert.throws(()=>f.integration.bindButton(401),/button_taken/);assert.strictEqual(f.json(IH)['401'].id,'other');});
+check(f=>{f.put(IH,{});for(const c of [28,103,105,106,108,116,412,773])assert.throws(()=>f.integration.bindButton(c),/button_reserved/);assert.throws(()=>f.integration.bindButton('x'),/button_unknown/);});
+check(f=>{assert.throws(()=>f.integration.bindButton(399),/button_no_mapper/);});
+check(f=>{fs.mkdirSync(f.real('/media/developer/apps/usr/palm/applications/org.webosbrew.inputhook'),{recursive:true});fs.mkdirSync(f.real('/home/root/.config/lginputhook'),{recursive:true});
+ f.integration.bindButton(399);assert.deepStrictEqual(f.json(IH)['399'],ihLaunch,'Input Hook without a keybinds file yet');});
+check(f=>{mmWithButtons(f,{home:{function:'press_button',inputs:{button:'home'}},red:{function:'screen_off'}},true);
+ const r=f.integration.bindButton(399);assert.deepStrictEqual(f.json(CFG).green,own);assert.strictEqual(f.restarts(),1,'running Magic Mapper reloaded');
+ assert.deepStrictEqual(r.bound,[{mapper:'magic',key:'green',code:399,name:'green'}]);assert.strictEqual(f.json(CFG).red.function,'screen_off');
+ assert.throws(()=>f.integration.bindButton(398),/button_taken/);assert.throws(()=>f.integration.bindButton(1037),/button_unsupported/);
+ f.integration.unbindButton();assert(!f.json(CFG).green);assert.strictEqual(f.json(CFG).home.function,'press_button');});
+check(f=>{mmWithButtons(f,{},true);f.put(IH,{});f.put('/tmp/inputhook','');f.integration.bindButton(399);assert(f.json(IH)['399']&&!f.json(CFG).green,'Input Hook first when both run');});
+check(f=>{mmWithButtons(f,{green:own},false);f.put(IH,{});f.put('/tmp/inputhook','');f.integration.bindButton(400);assert(!f.json(CFG).green,'the old button in the other mapper goes');assert(f.json(IH)['400']);});
+// HOME via mapper with HOME on another code: that code is HOME, not the extra button.
+check(f=>{f.put(IH,{'1234':ihLaunch});f.put(BASE+'/home-key','1234\n');f.put('/tmp/inputhook','');
+ assert.strictEqual(f.integration.buttons().bound.length,0,'HOME on 1234 is not the extra button');
+ assert.throws(()=>f.integration.bindButton(1234),/button_reserved/);
+ f.integration.bindButton(399);f.integration.unbindButton();assert.deepStrictEqual(f.json(IH)['1234'],ihLaunch,'unpin keeps HOME');});
+// The installer's HOME: the kept code, else 773, never the extra button that sorts first.
+check(f=>{f.put(IH,{'399':ihLaunch,'773':ihLaunch});assert.strictEqual(f.integration.legacyHome(),'773');
+ f.integration.legacyKey('773');assert.deepStrictEqual(f.json(IH)['399'],ihLaunch,'an update keeps the extra button');assert.strictEqual(f.integration.legacyHome(),'773');
+ f.integration.legacyKey('1086');assert(!f.json(IH)['773']&&f.json(IH)['1086']&&f.json(IH)['399'],'a new HOME code moves HOME only');assert.strictEqual(f.integration.homeKey('input'),'1086');});
+check(f=>{f.put(IH,{'500':ihLaunch});assert.strictEqual(f.integration.legacyHome(),'500','an old install without 773 keeps its code');});
+// A button unpinned or changed here is not brought back by the mode switch's backup.
+check(f=>{f.put(IH,{'773':ihLaunch,'399':ihLaunch});f.put('/tmp/inputhook','');f.put(BASE+'/additional-overlay','');
+ f.integration.clean('native',BASE+'/journal');assert(!f.json(IH)['399']&&!f.json(IH)['773']);
+ f.integration.restore('overlay',BASE+'/restore');assert(f.json(IH)['399'],'restored on the way back');
+ f.integration.unbindButton();assert(!f.json(IH)['399']);
+ f.integration.restore('overlay',BASE+'/restore2');assert(!f.json(IH)['399'],'unpinned stays unpinned');
+ f.integration.bindButton(400);f.integration.restore('overlay',BASE+'/restore3');assert(!f.json(IH)['399']&&f.json(IH)['400'],'one button after a change');});
+check(f=>{f.put(IH,{});const r=f.integration.bindButton(399);assert.strictEqual(r.active,false,'Input Hook not running is reported');});
+console.log('PASS',count,'integration cases: schema-aware cleanup, preservation, conditional lists, reload, rollback, changed config, remote button');

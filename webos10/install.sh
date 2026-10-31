@@ -172,11 +172,12 @@ mkdir -p "$(dirname "$KEYS")"
 [ -f "$KEYS" ] || echo '{}' > "$KEYS"
 [ -f "$KEYS.before-rawin-launcher" ] || cp -p "$KEYS" "$KEYS.before-rawin-launcher"
 # The HOME button's code: the one given (--home-key=CODE), else the one
-# already bound to the launcher (an earlier install, an update from the
-# panel), else the one pressed now, when someone is at a terminal (or
-# --home-key=ask), else 773, the tested Magic Remote's. Input Hook logs each
-# key it sees; the first code logged after the prompt is taken.
-bound=$(node -e 'var I=require(process.argv[1]),fs=require("fs"),k=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));Object.keys(k).forEach(function(c){if(I.ihOwn(k[c]))console.log(c);});' "$BASE/integration.js" "$KEYS" 2>/dev/null | head -n 1)
+# already bound as HOME (an earlier install, an update from the panel; not
+# the extra button chosen in Launcher settings), else the one pressed now,
+# when someone is at a terminal (or --home-key=ask), else 773, the tested
+# Magic Remote's. Input Hook logs each key it sees; the first code logged
+# after the prompt is taken.
+bound=$(node "$BASE/integration.js" legacy-home 2>/dev/null | head -n 1)
 case "$HOME_KEY_OPT" in
     ask) bound= ;;
     "") ;;

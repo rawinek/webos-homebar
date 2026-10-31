@@ -142,6 +142,19 @@
             loadMode();
         }, function(status, answer) { modeError = answer && answer.error ? answer.error : "launch_failed"; loadMode(); }, {mode: mode, fingerprint: fingerprint});
     }
+    // Settings → Remote button: the helper reads one press at a time and
+    // writes the binding to the mapper (webos10/helper/button.js).
+    function buttonLoadRun() { http("/button", function(r) { buttonInfo = r; }); }
+    function buttonCaptureRun(id, fresh) {
+        http("/button", function(r) { buttonCaptured(id, r); },
+             function(status, answer) { buttonCaptured(id, answer && answer.error ? answer : null); }, {step: "capture", fresh: fresh});
+    }
+    function buttonBindRun(code) {
+        http("/button", function(r) { buttonSaved(r); }, function(status, answer) { buttonSaved(answer); }, {step: "bind", code: code});
+    }
+    function buttonUnbindRun() {
+        http("/button", function(r) { buttonSaved(r); }, function(status, answer) { buttonSaved(answer); }, {step: "unbind"});
+    }
     // The helper closes and launches the overlay process after replying, so
     // this QML instance never has to restart itself while handling a click.
     function restartHomebar() {

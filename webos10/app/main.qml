@@ -76,6 +76,9 @@ WebOSWindow {
     onLaunchParamsChanged: {
         if (!initialized) return;
         if (isPreload(launchParams)) return;
+        // Settings → Remote button waiting for a press: the press may be the
+        // button already bound to Homebar, whose launch must not hide the panel.
+        if (win.visible && home.foreground && (home.buttonStep === "first" || home.buttonStep === "second")) return;
         if (win.visible && home.foreground) hide(); else show();
     }
 

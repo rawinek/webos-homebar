@@ -11,6 +11,7 @@
 - [Restarting Homebar](#restarting-homebar)
 - [Languages](#languages)
 - [Launch method](#launch-method-overlay-builds)
+- [Remote button](#remote-button-overlay-modes)
 
 ## Home
 
@@ -205,6 +206,7 @@ at *Larger* and the 12-hour clock:
 | | Restore from the backup | OK brings that file back |
 | Updates | Updates | The installed version; OK checks, downloads and installs a new release, see [Update](install.md#update). The launcher also looks once a day, the first time Home opens, and shows a dot on *System* and *Launcher settings* when a new version is there |
 | | Test builds | Also offer pre-releases as updates |
+| Help | Remote button | The remote button that opens Homebar besides HOME, set in Input Hook or Magic Mapper for you; overlay modes only, see [Remote button](#remote-button-overlay-modes) |
 | Help | Launch method | *System HOME (native)* or *Additional overlay*, with what the focused one does, the launch checks and a Yes/No popup before anything changes; shown on overlay builds, see [Launch method](#launch-method-overlay-builds) |
 | | Restart Homebar | Restarts the Homebar process and opens it again. Use it when the panel stops responding; favourites and settings stay saved |
 
@@ -326,8 +328,9 @@ process checked; old or custom setups that cannot be verified require manual
 attention rather than a guessed rewrite.
 
 Additional overlay keeps LG Home, Luma or Glasshouse and does not force HDMI when
-an app closes. Set another button to `org.rawin.launcher` in your mapper ([how](install.md#mapping-a-button-to-homebar)), or open
-the Homebar app tile. Earlier non-HOME shortcuts are restored only if their current
+an app closes. Choose a button in [Remote button](#remote-button-overlay-modes)
+(or set one to `org.rawin.launcher` in your mapper by hand,
+[how](install.md#mapping-a-button-to-homebar)), or open the Homebar app tile. Earlier non-HOME shortcuts are restored only if their current
 values match the previous cleanup; your later edits are never overwritten.
 Homebar does not choose a spare button or uninstall either mapper for you.
 
@@ -348,9 +351,34 @@ recovery information. Older releases do not understand these modes: reverting
 requires a separate rollback procedure.
 
 Magic Mapper support follows the [upstream configuration format](https://github.com/andrewfraley/magic_mapper#configuring-buttons).
-Known 1.0.0/1.1.0 script layouts are inspected at the standard location, through
+Known 1.0 to 1.2 script layouts are inspected at the standard location, through
 the known startup script, or through a running `magic_mapper.py` process. Custom
 renamed installations outside these locations need manual checking. Supervised
 restart support is required only when changing an active mapper. Unknown layouts are reported as
 unverified. Actual coexistence across TVs and mapper versions still needs tests;
 local fixtures do not establish full hardware compatibility.
+
+## Remote button (overlay modes)
+
+**Launcher settings → Help → Remote button** puts Homebar on a button of your
+remote besides HOME, in Input Hook or Magic Mapper, so you do not have to edit
+their files. It is there in the additional overlay and with HOME via mapper; with
+System HOME, HOME already opens Homebar.
+
+1. OK on the row opens a popup: press the button that should open Homebar.
+2. Homebar shows which button it was, with its code (for example *GREEN (399)*),
+   and asks for one more press of the same button. Another button is not saved.
+3. The button is saved in the mapper that is running (Input Hook first), and
+   pressing it opens Homebar from then on.
+
+With a button saved, OK on the row offers **Change** and **Unpin**; Unpin takes
+Homebar's rule out again. One button at a time: a new one replaces the old.
+OK, the arrows, BACK, HOME and power cannot be chosen, and a button that already
+has another action in the mapper is left alone. BACK cancels while Homebar waits
+for a press. It only works where the mapper reads the remote: Input Hook does not
+on every TV (the LG C5, for one), and a mapper that is not running gets the rule
+for when it runs (Homebar says so). Without Input Hook or Magic Mapper, Homebar
+only shows the button's code, to set up in another mapper by hand. A button
+Magic Mapper already uses does not reach Homebar while Magic Mapper holds the
+remote.
+

@@ -184,8 +184,10 @@ of mapper versions are tested locally only so far; reports are welcome.
 ### Mapping a button to Homebar
 
 In the additional overlay Homebar opens from its **app tile** with nothing
-set up. For a button, make the mapper *launch the app* `org.rawin.launcher`
-(the name Homebar's app has; not "Homebar"):
+set up. For a button, *Launcher settings → Help → Remote button* asks you to
+press it twice and writes the rule to Input Hook or Magic Mapper
+([details](using.md#remote-button-overlay-modes)). By hand, make the mapper
+*launch the app* `org.rawin.launcher` (the name Homebar's app has; not "Homebar"):
 
 - **Input Hook** (`/home/root/.config/lginputhook/keybinds.json`, or its app):
   the key is the button's **uinput code**, not its key id. Press the button

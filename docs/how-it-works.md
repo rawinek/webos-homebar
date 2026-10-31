@@ -167,6 +167,14 @@ webOS 4's node 0.12), on port 8898: the overlay's helper starts it in its own
 process, and on webOS 4 the boot hook starts it as its own `node` process.
 It serves:
 
+- `/button` on the helper (`127.0.0.1:8899`, changes only with the panel's
+  header): *Remote button*. A capture reads one press straight from
+  `/dev/input/event*` (the kernel code Input Hook and Magic Mapper use), with
+  the devices opened non-blocking and read every 30 ms while the panel waits,
+  so no worker thread is held; they stay open between the two presses. The
+  binding is written by `integration.js`: to the running mapper (Input Hook
+  first), never over another action, with Magic Mapper's own button name read
+  from its `BUTTONS` table and Magic Mapper restarted.
 - `/stats`, to the panel on `127.0.0.1` only: the TV's load for the status
   chip, read from `/proc` (`shared/stats.js`): processor and network rates are
   the change since the previous ask, so nothing runs between two asks, and the

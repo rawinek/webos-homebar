@@ -82,8 +82,10 @@ shows LG's Home, nothing, or a black screen:
 ## HOME does nothing (overlay)
 
 In the additional overlay HOME stays with LG on purpose: open Homebar from its
-app tile, or from the button you mapped in Input Hook or Magic Mapper to
-launch `org.rawin.launcher`. The rest of this section is for HOME via Input Hook.
+app tile, or from the button you chose in *Launcher settings → Help → Remote
+button* (or mapped by hand in Input Hook or Magic Mapper to launch
+`org.rawin.launcher`). If that button does nothing, check that the mapper runs
+and reads the remote: the popup says so when Homebar saves it. The rest of this section is for HOME via Input Hook.
 
 Run from a terminal, the installer asks for a press of HOME and binds the
 key Input Hook logs for it; without a press, or from the panel's updater, it

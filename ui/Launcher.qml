@@ -232,7 +232,19 @@ FocusScope {
     property real modeDetailsOffset: 0
     signal modeDetailsScroll(int direction)
     signal launchCheckRequested()
-    readonly property var settingGroups: groupsFor(Config.exitTarget, modeInfo.available)
+    // Settings → Remote button (the overlay modes): what the helper says opens
+    // Homebar besides HOME, and the popup's step: "menu" (change or unpin),
+    // "first" and "second" (waiting for a press, read by the helper), "saving"
+    // and "unpinning", then "done" with buttonText to read. buttonCapture
+    // numbers the presses asked for: an answer to an abandoned one is dropped.
+    property var buttonInfo: ({ok: false, bound: [], mapper: "", blocked: ""})
+    property string buttonStep: ""
+    property int buttonCode: 0
+    property string buttonName: ""
+    property string buttonText: ""
+    property bool buttonUnpin: false
+    property int buttonCapture: 0
+    readonly property var settingGroups: groupsFor(Config.exitTarget, modeInfo.available, modeInfo.available && modeInfo.current !== "native")
     readonly property var settingKeys: keysOf(settingGroups)
     readonly property var menuRows: rowsOf(settingGroups, lang)
     readonly property var settingsItems: settingKeys.map(function(k) { return settingFor(k); })
@@ -517,8 +529,8 @@ FocusScope {
     }
     // The settings menu's groups: a name and the settings in it. About comes
     // first, so it is what the menu opens on. The BACK-hold target is the
-    // overlay's alone.
-    function groupsFor(exitTarget, modes) {
+    // overlay's alone, and so is the remote button, outside System HOME.
+    function groupsFor(exitTarget, modes, button) {
         return [
             {title: "grp_about", keys: ["about"]},
             {title: "grp_look", keys: ["lang", "theme", "size", "motion"]},
@@ -529,7 +541,7 @@ FocusScope {
             {title: "grp_screen", keys: ["title", "hints", "timeout"]},
             {title: "grp_backup", keys: ["backup", "restore"]},
             {title: "grp_updates", keys: ["update", "beta"]},
-            {title: "grp_support", keys: modes ? ["mode", "restart"] : ["restart"]}
+            {title: "grp_support", keys: modes ? (button ? ["mode", "button", "restart"] : ["mode", "restart"]) : ["restart"]}
         ];
     }
     function keysOf(groups) {
@@ -556,7 +568,7 @@ FocusScope {
                      place: "set_place", units: "set_units", temperature: "set_temperature", about: "set_about", hints: "set_hints",
                      mode: "set_mode", timeout: "set_timeout", restart: "set_restart_homebar",
                      sources: "set_sources", inputText: "set_input_text", inputHeading: "set_input_heading", inputOverflow: "set_input_overflow", homeShortcuts: "set_home_shortcuts",
-                     closeAppsMode: "set_close_apps_mode",
+                     closeAppsMode: "set_close_apps_mode", button: "set_button",
                      topBar: "set_topbar"};
         var item = {key: key, title: t(names[key]), action: "setting", value: ""};
         if (key === "backup" || key === "restore") {
@@ -572,6 +584,9 @@ FocusScope {
         } else if (key === "restart") {
             item.action = "restart";
             item.value = t("restart_sub");
+        } else if (key === "button") {
+            item.action = "button";
+            item.value = buttonValue(buttonInfo);
         } else if (key === "place") {
             item.action = "place";
             item.value = placeText(setupInfo);
@@ -688,6 +703,7 @@ FocusScope {
         if (key === "backup") return t("hint_backup");
         if (key === "restore") return backupInfo.saved ? t("hint_restore") : "";
         if (key === "restart") return t("hint_restart");
+        if (key === "button") return t("hint_change");
         if (key === "update") {
             var s = updateInfo.state;
             return s === "available" ? t("hint_download") : s === "ready" ? t("hint_install")
@@ -918,6 +934,9 @@ FocusScope {
         var red = hintKey(t("key_red"), "red"), yellow = hintKey(t("key_yellow"), "yellow");
         if (modeConfirm !== "") return [hint([hintKey("◀ ▶")], t("hint_choose")), hint([ok], t("hint_confirm")), hint([back], t("mode_no"))];
         if (modeDoneAt > 0) return [hint([ok], t("mode_ok"))];
+        if (buttonStep === "menu") return [hint([hintKey("◀ ▶")], t("hint_choose")), hint([ok], t("hint_confirm")), hint([back], t("button_cancel"))];
+        if (buttonStep === "done") return [hint([ok], t("mode_ok"))];
+        if (buttonStep !== "") return buttonStep === "first" || buttonStep === "second" ? [hint([back], t("button_cancel"))] : [];
         if (currentPage === "apps") {
             var app = apps[index];
             var fav = app && keys.indexOf(app.id) >= 0, hid = app && hiddenIds.indexOf(app.id) >= 0;
@@ -1194,6 +1213,88 @@ FocusScope {
         modeConfirm = ""; modeConfirmYes = false;
         if (yes && id) modeRun(id, modeConfirmFingerprint);
     }
+    // A button as people know it: the coloured ones by colour, in the panel's
+    // language, the others by their label; always with the code.
+    function buttonLabel(code, name) {
+        var colour = ["red", "green", "yellow", "blue"].indexOf(name) >= 0;
+        return (colour ? t("key_" + name) : name || t("button_unnamed")) + " (" + code + ")";
+    }
+    function buttonValue(info) {
+        var b = info.bound && info.bound.length ? info.bound[0] : null;
+        return b ? buttonLabel(b.code, b.name) : t("val_button_none");
+    }
+    function mapperName(id) { return id === "magic" ? "Magic Mapper" : "Input Hook"; }
+    function buttonPopupText() {
+        var b = buttonInfo.bound && buttonInfo.bound.length ? buttonInfo.bound[0] : null;
+        if (buttonStep === "menu" && b) return Strings.format(t("button_current"), {button: buttonLabel(b.code, b.name), mapper: mapperName(b.mapper)});
+        var lead = buttonText ? buttonText + "\n\n" : "";
+        if (buttonStep === "first") return lead + t("button_press") + "\n\n" + t("button_note");
+        if (buttonStep === "second") return lead + Strings.format(t("button_again"), {button: buttonLabel(buttonCode, buttonName)});
+        if (buttonStep === "done") return buttonText;
+        return t("button_saving");
+    }
+    // OK on the row: the bound button can be changed or unpinned; without one,
+    // the popup asks for a press straight away.
+    function openButton() {
+        buttonText = ""; buttonUnpin = false;
+        // The helper has not answered (yet): nothing to go on.
+        if (!buttonInfo.ok) { buttonStep = "done"; buttonText = t("button_failed"); return; }
+        if (buttonInfo.blocked) { buttonStep = "done"; buttonText = buttonError({error: buttonInfo.blocked}); return; }
+        if (buttonInfo.bound && buttonInfo.bound.length) buttonStep = "menu";
+        else captureButton("first");
+    }
+    // The first press counts only from now on; the second may already have
+    // come while the panel asked for it (the helper keeps reading meanwhile).
+    function captureButton(step) {
+        buttonStep = step; buttonCapture++;
+        buttonCaptureRun(buttonCapture, step === "first" && buttonText === "");
+    }
+    // The same list as webos10/integration.js: OK, the arrows, BACK and HOME
+    // drive the panel, and power stays the TV's.
+    readonly property var reservedButtons: [28, 103, 105, 106, 108, 116, 412, 773]
+    // One press read by the helper (code 0: none came in time). The first is
+    // the button; the second has to be the same one before it is saved.
+    function buttonCaptured(id, r) {
+        if (id !== buttonCapture || (buttonStep !== "first" && buttonStep !== "second")) return;
+        if (!r || r.error) { buttonStep = "done"; buttonText = buttonError(r); return; }
+        if (!r.code) { buttonStep = "done"; buttonText = t("button_none_seen"); return; }
+        if (buttonStep === "first") {
+            if (reservedButtons.indexOf(r.code) >= 0) { buttonText = t("button_reserved"); captureButton("first"); return; }
+            // No mapper Homebar can write to: the code is all it can give.
+            if (!buttonInfo.mapper) { buttonStep = "done"; buttonText = Strings.format(t("button_code_only"), {button: buttonLabel(r.code, r.name)}); return; }
+            buttonCode = r.code; buttonName = r.name || ""; buttonText = "";
+            captureButton("second");
+        } else if (r.code !== buttonCode) {
+            buttonText = Strings.format(t("button_other"), {other: buttonLabel(r.code, r.name)});
+            captureButton("second");
+        } else {
+            buttonStep = "saving";
+            buttonBindRun(buttonCode);
+        }
+    }
+    // The helper's answer to saving or unpinning: its new state, or an error.
+    function buttonSaved(r) {
+        var ok = r && r.ok;
+        if (ok) buttonInfo = r;
+        if (buttonStep === "saving") {
+            buttonStep = "done";
+            buttonText = !ok ? buttonError(r) : Strings.format(t("button_saved"), {button: buttonLabel(buttonCode, buttonName)})
+                + (r.active ? "" : "\n\n" + Strings.format(t("button_inactive"), {mapper: mapperName(r.mapper)}));
+        }
+        else if (buttonStep === "unpinning") { buttonStep = "done"; buttonText = ok ? t("button_unpinned") : buttonError(r); }
+    }
+    function buttonError(r) {
+        var code = r && r.error ? r.error : "button_failed", text = t(code);
+        return text === code ? t("button_failed") : text;
+    }
+    function answerButtonMenu() {
+        if (buttonUnpin) { buttonStep = "unpinning"; buttonUnbindRun(); }
+        else captureButton("first");
+    }
+    function closeButton() {
+        buttonStep = ""; buttonText = ""; buttonCapture++;
+        buttonLoadRun();
+    }
     // The "switch finished" popup: acknowledged once, per switch.
     function ackModeDone() {
         if (modeDoneAt > 0) setSetting("modeAck", modeDoneAt);
@@ -1218,6 +1319,7 @@ FocusScope {
         if (item.action === "place") { loadSetupInfo(); return; }
         if (item.action === "about") return;
         if (item.action === "restart") { restartHomebar(); return; }
+        if (item.action === "button") { openButton(); return; }
         if (item.action === "backup") { backupRun("save", backupData()); return; }
         if (item.action === "restore") { if (backupInfo.saved) backupRun("load", null); return; }
         if (item.action === "launcherSettings") {
@@ -1228,6 +1330,7 @@ FocusScope {
             if (s === "idle" || s === "current" || s === "failed") updateStep("check");
             backupRun("info", null);
             loadSetupInfo();
+            buttonLoadRun();
             return;
         }
         if (item.action === "closeApps") { runCloseApps(); return; }
@@ -1402,6 +1505,22 @@ FocusScope {
                 modeConfirmYes = event.key === Qt.Key_Left || event.key === Qt.Key_Up;
             return;
         }
+        // The remote-button popup takes every key too. While it waits, the press
+        // is the helper's to read (BACK cancels); the menu is Change / Unpin.
+        if (buttonStep !== "") {
+            event.accepted = true;
+            if (event.isAutoRepeat) return;
+            modeKeyHeld = event.key;
+            if (buttonStep === "menu") {
+                if (isBack(event.key)) closeButton();
+                else if (isOk(event.key)) answerButtonMenu();
+                else if (event.key === Qt.Key_Left || event.key === Qt.Key_Right || event.key === Qt.Key_Up || event.key === Qt.Key_Down)
+                    buttonUnpin = event.key === Qt.Key_Right || event.key === Qt.Key_Down;
+            } else if (buttonStep === "done") {
+                if (isOk(event.key) || isBack(event.key)) closeButton();
+            } else if ((buttonStep === "first" || buttonStep === "second") && isBack(event.key)) closeButton();
+            return;
+        }
         if (page === "settings" && menuHover >= 0 && isOk(event.key) && !event.isAutoRepeat) {
             pane = 0; selected = menuHover;
         }
@@ -1468,6 +1587,9 @@ FocusScope {
         pointerAt = Qt.point(-1, -1);
         pressing = false; okHeld = false; longFired = false; holdTimer.stop(); okRelease.stop();
         editIndex = -1; editSourceIndex = -1; editActionIndex = -1; notice = ""; modeConfirm = "";
+        // A remote-button popup does not outlive the panel; an answer still on
+        // its way is dropped (buttonCapture).
+        if (buttonStep !== "") { buttonStep = ""; buttonText = ""; buttonCapture++; }
         if (foreground) {
             foregroundSince = Date.now();
             launching = false; message = ""; page="home"; selected=0; pane=0; forceActiveFocus();
@@ -1833,6 +1955,11 @@ FocusScope {
     }
     // Only the overlay bridge implements runtime mode changes.
     function modeRun(mode, fingerprint) { message = t("err_mode"); }
+    // Nor does the Home panel read the remote: the row is not shown there.
+    function buttonLoadRun() {}
+    function buttonCaptureRun(id, fresh) {}
+    function buttonBindRun(code) {}
+    function buttonUnbindRun() {}
     // Home-panel variant: apply.sh restarts only LG Home, which hosts the
     // panel. The launch after it brings the freshly loaded Homebar back.
     function restartHomebar() {
@@ -3224,6 +3351,69 @@ FocusScope {
                             MouseArea {
                                 anchors.fill: parent
                                 onClicked: { shell.noteActivity(); if (shell.modeConfirm !== "") shell.answerMode(parent.yes); else shell.ackModeDone(); }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Settings → Remote button: change or unpin the bound button, the two
+    // presses that choose one, and what came of it. Above everything.
+    Rectangle {
+        id: buttonPopup
+        objectName: "buttonPopup"
+        visible: shell.buttonStep !== ""
+        z: 61; x: 0; y: 0; width: shell.width; height: shell.height
+        color: Qt.rgba(0, 0, 0, 0.62)
+        MouseArea {
+            anchors.fill: parent
+            onClicked: { shell.noteActivity(); if (shell.buttonStep !== "saving" && shell.buttonStep !== "unpinning") shell.closeButton(); }
+        }
+        Rectangle {
+            anchors.centerIn: parent
+            width: Math.min(parent.width - 2*shell.margin, shell.px(860)); height: buttonColumn.implicitHeight + shell.px(60)
+            radius: shell.px(22); color: shell.chip; border.color: shell.theme.focus; border.width: Math.max(1, 2*shell.u)
+            MouseArea { anchors.fill: parent; onClicked: {} }
+            Column {
+                id: buttonColumn
+                x: shell.px(34); y: shell.px(30); width: parent.width - 2*x; spacing: shell.px(20)
+                Text {
+                    width: parent.width; wrapMode: Text.WordWrap
+                    text: shell.t("set_button")
+                    font.family: shell.fontName; font.bold: true; font.pixelSize: shell.pt(26); color: shell.ink
+                }
+                Text {
+                    objectName: "buttonText"
+                    width: parent.width; wrapMode: Text.WordWrap; textFormat: Text.PlainText
+                    text: shell.buttonStep !== "" ? shell.buttonPopupText() : ""
+                    font.family: shell.fontName; font.pixelSize: shell.pt(20); color: shell.ink2
+                }
+                Row {
+                    spacing: shell.px(16)
+                    visible: shell.buttonStep === "menu" || shell.buttonStep === "done"
+                    Repeater {
+                        model: shell.buttonStep === "menu" ? [false, true] : [false]
+                        Rectangle {
+                            readonly property bool unpin: modelData
+                            readonly property bool lit: shell.buttonStep === "done" || shell.buttonUnpin === unpin
+                            objectName: shell.buttonStep === "done" ? "buttonOk" : unpin ? "buttonUnpin" : "buttonChange"
+                            width: shell.px(170); height: shell.px(52); radius: shell.px(12)
+                            color: lit ? shell.theme.focus : shell.theme.track
+                            Text {
+                                anchors.centerIn: parent
+                                text: shell.buttonStep === "done" ? shell.t("mode_ok") : shell.t(parent.unpin ? "button_unpin" : "button_change")
+                                font.family: shell.fontName; font.bold: true; font.pixelSize: shell.pt(21)
+                                color: parent.lit ? shell.theme.onFocus : shell.ink
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    shell.noteActivity();
+                                    if (shell.buttonStep === "done") shell.closeButton();
+                                    else { shell.buttonUnpin = parent.unpin; shell.answerButtonMenu(); }
+                                }
                             }
                         }
                     }

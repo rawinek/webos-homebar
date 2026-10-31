@@ -68,6 +68,9 @@ The picture stays where it is. Press HOME again, or BACK, and it is gone.
   → Updates*, with what is new in each; a dot on *System* says when one is
   there.
 - **Backup and restore** of favourites and settings in one file.
+- **A remote button for Homebar** (overlay): press it twice in *Launcher
+  settings → Help → Remote button*; Homebar sets it in Input Hook or Magic
+  Mapper, and Unpin takes it out again.
 - **After an app exits or BACK is held** (System HOME and the older overlay):
   the TV goes back to the last input, a chosen one, or does nothing; choose
   in *Launcher settings → After holding BACK*.
@@ -84,7 +87,7 @@ Launch method* changes it where more than one fits.
 | :--- | :--- | :--- | :--- |
 | **Home panel** | The panel runs *inside* LG's own QML Home, which keeps HOME, its window and its lifecycle | Root only | webOS 4 and 5 (e.g. LG C9) |
 | **System HOME (native)** | Homebar replaces LG's Home: HOME opens it directly. On webOS 9 to 11 LG's own Home is a Flutter app; Homebar puts its own QML host in its place | Root only; no Input Hook, no mapper | webOS 10 and 11 (e.g. LG B4); a trial on 6 to 9 (works on an LG C1, webOS 6.5) |
-| **Additional overlay** | A separate app and root helper next to your Home. LG Home (or Luma, Glasshouse) keeps HOME; Homebar opens from its **app tile** or from a button you map | Input Hook or Magic Mapper for a button (not for the tile) | webOS 6 or newer (checked on 10) |
+| **Additional overlay** | A separate app and root helper next to your Home. LG Home (or Luma, Glasshouse) keeps HOME; Homebar opens from its **app tile** or from a button you choose in its settings | Input Hook or Magic Mapper for a button (not for the tile) | webOS 6 or newer (checked on 10) |
 
 The overlay can also take HOME itself, through a binding in Input Hook
 (*HOME via mapper*): that is what webOS 6 to 9 get by default, and what earlier
@@ -136,9 +139,10 @@ the Homebar app tile, or press the button you mapped).
 - Choose by hand: `--native-home`, `--additional-overlay`, `--home-panel`,
   `--overlay`. All options, installing without internet on the TV, updating
   and uninstalling: [Install, update, uninstall](docs/install.md).
-- **Additional overlay: a button** is a mapper rule that launches the app id
-  `org.rawin.launcher` (examples for Input Hook and Magic Mapper:
-  [Mapping a button to Homebar](docs/install.md#mapping-a-button-to-homebar)).
+- **Additional overlay: a button:** *Launcher settings → Help → Remote
+  button* asks you to press it twice and sets it in Input Hook or Magic Mapper.
+  By hand it is a mapper rule that launches the app id `org.rawin.launcher`
+  ([Mapping a button to Homebar](docs/install.md#mapping-a-button-to-homebar)).
   The app tile works without one.
 
 **Update:** *System → Launcher settings → Updates* (from 0.10.0 on).

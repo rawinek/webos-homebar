@@ -22,6 +22,8 @@ let guard;
 try { guard = require('./guard'); } catch (e) { guard = require('../../shared/guard'); }
 const ModeControl = require('./mode');
 const modeControl = new ModeControl(fs, execFile, () => preloader.pause(0));
+const RemoteButton = require('./button');
+const remoteButton = new RemoteButton();
 let restarting = false, updateBusy = false;
 function installingUpdate() {
   try { return fs.readFileSync('/tmp/rawin-launcher-update/state', 'utf8').trim() === 'running'; } catch (e) { return false; }
@@ -135,7 +137,7 @@ function changesState(url, req) {
   const p = url.pathname;
   if (['/launch', '/close-apps', '/exit-target', '/restart', '/backup'].includes(p)) return true;
   if (p === '/update') return String((url.query || {}).step || '') !== 'status';
-  if (p === '/mode') return req.method !== 'GET';
+  if (p === '/mode' || p === '/button') return req.method !== 'GET';
   return false;
 }
 
@@ -210,6 +212,21 @@ const server = http.createServer(async (req, res) => {
       }, body.fingerprint);
       if (!replied) send(res, result.ok ? 200 : 409, result);
       return;
+    }
+    // Settings → Remote button (overlay modes): a press read for the panel, then
+    // the binding written to the mapper, or taken out again.
+    if (url.pathname === '/button') {
+      if (req.method === 'GET') return send(res, 200, remoteButton.status());
+      if (req.method !== 'POST') return send(res, 405, { ok: false, error: 'method' });
+      let body = null;
+      try { body = JSON.parse(await readBody(req)); } catch (e) {}
+      const step = body && body.step;
+      if (step !== 'unbind' && nativeHome()) return send(res, 409, { ok: false, error: 'button_native' });
+      if (modeControl.isBusy()) return send(res, 409, { ok: false, error: 'busy' });
+      if (step === 'capture') return remoteButton.capture(body.fresh === true, (r) => send(res, 200, r));
+      if (step === 'bind') { const r = remoteButton.bind(body.code); return send(res, r.ok ? 200 : 409, r); }
+      if (step === 'unbind') { const r = remoteButton.unbind(); return send(res, r.ok ? 200 : 409, r); }
+      return send(res, 400, { ok: false, error: 'step' });
     }
     if (url.pathname === '/restart' && req.method === 'POST') {
       if (modeControl.isBusy() || restarting || updateBusy || installingUpdate()) return send(res, 409, { ok: false, error: 'busy' });
