@@ -96,14 +96,18 @@ WebOSWindow {
         // Settings → Remote button waiting for a press: the press may be the
         // button already bound to Homebar, whose launch must not hide the panel.
         if (win.visible && home.foreground && (home.buttonStep === "first" || home.buttonStep === "second")) return;
-        // Up means up on the screen too: a window the system has taken the focus
-        // from (the TV hid or backgrounded it) gets shown, not hidden.
+        // Up means up on the screen too. A window that is shown but has no focus
+        // is not on screen (after the TV wakes from standby, or under LG's
+        // screensaver), and showing it again changes nothing: it is unmapped
+        // and mapped anew. Before, that took a second HOME (the first hid it).
         if (win.visible && home.foreground && win.active) { note("-> hide"); hide(); }
+        else if (win.visible) { note("-> map again"); hideTimer.stop(); win.visible = false; remapTimer.restart(); }
         else { note("-> show"); show(); }
     }
+    Timer { id: remapTimer; interval: 60; onTriggered: show() }
 
     function show() {
-        hideTimer.stop(); mapTimer.stop();
+        hideTimer.stop(); mapTimer.stop(); remapTimer.stop();
         win.visible = true;
         // The window takes the focus too: the next HOME goes by it (see above).
         win.requestActivate();
