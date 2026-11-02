@@ -55,32 +55,44 @@ WebOSWindow {
     // app shows a window: a preloaded start maps the window for a moment,
     // with the panel faded out (nothing is drawn), and hides it again.
     // How BACK closes Homebar as System HOME. Hiding the window is enough on
-    // webOS 10; webOS 11 keeps the remote on the hidden Home until HOME is
-    // pressed (an LG G5), so there the card underneath is launched again to
-    // take it back ("card"). "home" asks the app manager for what HOME does
-    // instead; "none" only hides. back-mode in the launcher's folder overrides
-    // the choice (read at each show), to try them out on a TV; the panel log
+    // webOS 10. webOS 11 keeps the remote on the hidden Home until the
+    // compositor handles a HOME key itself (an LG G5): neither the app manager's
+    // relaunch ("home") nor launching the card underneath again ("card") gave
+    // it back. So there BACK sends a HOME key through the TV's own input path
+    // ("key"), and the panel hides on the relaunch it brings, as for HOME.
+    // "none" only hides. back-mode in the launcher's folder overrides the
+    // choice (read at each show), to try them out on a TV; the panel log
     // records what came of it.
     property string backMode: ""
     readonly property int webosMajor: parseInt(Config.webos || "0", 10) || 0
     function closeByBack() {
-        var mode = !nativeHome ? "none" : backMode || (webosMajor >= 11 ? "card" : "none");
-        var front = home.frontAppId;
-        note("BACK close: mode " + mode + ", under it " + (front || "nothing"));
-        if (mode === "home") {
+        var mode = !nativeHome ? "none" : backMode || (webosMajor >= 11 ? "key" : "none");
+        note("BACK close: mode " + mode);
+        if (mode === "key") {
+            home.http("/home-key", function(r) { note("BACK close: HOME key sent " + (r.returnValue === true)); },
+                      function(s) { note("BACK close: sending HOME failed " + s); }, {});
+            backFallback.restart();
+        } else if (mode === "home") {
             home.http("/launch?id=com.webos.app.home&params=" + encodeURIComponent(JSON.stringify({activateType: "home", launchType: "homeKey"})),
                       function() { note("BACK close: Home launched"); }, function(s) { note("BACK close: launching Home failed " + s); });
             backFallback.restart();
         } else {
             hide();
-            if (mode === "card" && front)
-                home.http("/launch?id=" + encodeURIComponent(front), function(r) { note("BACK close: " + front + " launched " + (r.returnValue === true)); },
+            // The card in front now, looked up afresh: what the panel saw
+            // when it opened may have changed since.
+            if (mode === "card") home.http("/foreground", function(r) {
+                var list = r.foregroundAppInfo || [], front = "";
+                for (var i = 0; i < list.length && !front; i++)
+                    if (/CARD$/.test(list[i].windowType || "") && list[i].appId !== "com.webos.app.home") front = list[i].windowGroupOwnerId || list[i].appId;
+                if (!front) { note("BACK close: no card underneath"); return; }
+                home.http("/launch?id=" + encodeURIComponent(front), function(l) { note("BACK close: " + front + " launched " + (l.returnValue === true)); },
                           function(s) { note("BACK close: launching " + front + " failed " + s); });
+            });
         }
         afterBack.count = 0; afterBack.interval = 600; afterBack.restart();
     }
-    // "home": the app manager's relaunch hides the panel as HOME does; if none
-    // comes, the panel is hidden anyway.
+    // "key" and "home": the relaunch they bring hides the panel as HOME does; if
+    // none comes, the panel is hidden anyway.
     Timer { id: backFallback; interval: 1000; onTriggered: if (win.visible && home.foreground) { note("BACK close: no relaunch came; hiding"); hide(); } }
     // What the TV has in front after a BACK close, twice: whether Home still
     // counts as shown there tells the ways out apart.

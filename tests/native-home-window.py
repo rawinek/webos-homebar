@@ -43,13 +43,18 @@ with tempfile.TemporaryDirectory() as tmp:
  other.close()
  # webOS 11 (issue #16): BACK only hid the window and the TV kept the remote on
  # the hidden Home, so the card underneath is launched again to take it back.
- home=[o for o in win.findChildren(object) if o.property('frontAppId') is not None][0]
+ home=[o for o in win.findChildren(object) if o.property('closeReason') is not None][0]
  if not win.property('visible'):engine.rootContext().setContextProperty('params',{'n':2});rp.wait(300)
- home.setProperty('frontAppId','netflix');home.setProperty('httpCalls',[])
- win.setProperty('backMode','');home.closeHome('back');rp.wait(400)
- assert win.property('visible') is False and '/launch?id=netflix' in home.property('httpCalls'),home.property('httpCalls')
- print('PASS BACK on webOS 11 hides the panel and launches the card underneath again')
+ home.setProperty('httpCalls',[])
+ win.setProperty('backMode','');home.closeHome('back');rp.wait(300)
+ assert '/home-key' in home.property('httpCalls') and win.property('visible') is True,home.property('httpCalls')
+ rp.wait(1000);assert win.property('visible') is False,'no relaunch came: hidden anyway'
+ print('PASS BACK on webOS 11 sends a HOME key through the TV, and hides without an answer')
  engine.rootContext().setContextProperty('params',{'n':3});rp.wait(300);assert win.property('visible') is True
+ home.setProperty('httpCalls',[]);win.setProperty('backMode','card');home.closeHome('back');rp.wait(300)
+ assert win.property('visible') is False and '/foreground' in home.property('httpCalls'),home.property('httpCalls')
+ print('PASS back-mode card hides and looks up the card underneath afresh')
+ engine.rootContext().setContextProperty('params',{'n':5});rp.wait(300);assert win.property('visible') is True
  home.setProperty('httpCalls',[]);win.setProperty('backMode','home');home.closeHome('back');rp.wait(300)
  calls=home.property('httpCalls');assert any(c.startswith('/launch?id=com.webos.app.home') for c in calls),calls
  assert win.property('visible') is True,'back-mode home waits for the relaunch'

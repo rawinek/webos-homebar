@@ -135,7 +135,7 @@ function send(res, code, body, type) {
 // these, with the X-Homebar header. status, check-free reads stay plain.
 function changesState(url, req) {
   const p = url.pathname;
-  if (['/launch', '/close-apps', '/exit-target', '/restart', '/backup'].includes(p)) return true;
+  if (['/launch', '/close-apps', '/exit-target', '/restart', '/backup', '/home-key'].includes(p)) return true;
   if (p === '/update') return String((url.query || {}).step || '') !== 'status';
   if (p === '/mode' || p === '/button') return req.method !== 'GET';
   return false;
@@ -169,10 +169,10 @@ const server = http.createServer(async (req, res) => {
         mounted = home.ino === stage.ino && home.dev === stage.dev;
       } catch (e) {}
       // back-mode: how BACK closes the System HOME panel, for trying the ways
-      // out on a TV (card, home or none; empty: the panel's own choice).
+      // out on a TV (key, card, home or none; empty: the panel's own choice).
       let backMode = '';
       try { backMode = fs.readFileSync('/var/lib/webosbrew/rawin-launcher-home/back-mode', 'utf8').trim(); } catch (e) {}
-      if (!/^(card|home|none)$/.test(backMode)) backMode = '';
+      if (!/^(key|card|home|none)$/.test(backMode)) backMode = '';
       return send(res, 200, { returnValue: true, lgHome: !mounted, nativeHome: nativeHomeMounted(), configuredNativeHome: nativeHome(), backMode: backMode });
     }
     if (url.pathname === '/foreground') {
@@ -193,6 +193,12 @@ const server = http.createServer(async (req, res) => {
         } catch (e) { return send(res, 400, { returnValue: false, errorText: 'params must be JSON' }); }
       }
       return send(res, 200, await luna('luna://com.webos.applicationManager/launch', { id, params }));
+    }
+    // A HOME key through the TV's own input path (the network remote's), for
+    // closing Homebar by BACK as System HOME on webOS 11: only a HOME the
+    // compositor handles itself gives the remote back to the app underneath.
+    if (url.pathname === '/home-key' && req.method === 'POST') {
+      return send(res, 200, await luna('luna://com.webos.service.networkinput/sendSpecialKey', { key: 'HOME' }));
     }
     if (url.pathname === '/close-apps') {
       // LG also closes our overlay; the watchdog preloads it again afterward.

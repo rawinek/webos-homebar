@@ -396,9 +396,6 @@ FocusScope {
     // BACK differently as System HOME on webOS 11 (webos10/app/main.qml).
     property string closeReason: ""
     function closeHome(reason) { closeReason = reason || "back"; closeRequested(); }
-    // The card in front under the panel (an input or app), from the last look
-    // at the foreground: what BACK gives the remote back to there.
-    property string frontAppId: ""
     // The timeout deliberately counts only actual input. Qt can send hover
     // events for a pointer that has not moved, so pointerMoved() calls this
     // only after its coordinate check; keys, clicks and wheel scrolls call it

@@ -165,11 +165,10 @@
         id: foregroundInfo
         function callService(p) {
             shell.http("/foreground", function(r) {
-                nowTitle = ""; frontAppId = "";
+                nowTitle = "";
                 var list = r.foregroundAppInfo || [];
                 for (var i=0; i<list.length; i++) {
                     if (list[i].appId.indexOf("org.rawin.launcher") === 0 || list[i].windowType === "_WEBOS_WINDOW_TYPE_OVERLAY") continue;
-                    if (!frontAppId && /CARD$/.test(list[i].windowType || "")) frontAppId = list[i].windowGroupOwnerId || list[i].appId;
                     if (describe(list[i].windowGroupOwnerId || list[i].appId)) return;
                 }
             });
