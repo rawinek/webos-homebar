@@ -54,19 +54,18 @@ WebOSWindow {
     // The app manager keeps its loading spinner on screen until a launched
     // app shows a window: a preloaded start maps the window for a moment,
     // with the panel faded out (nothing is drawn), and hides it again.
-    // How BACK closes Homebar as System HOME. Hiding the window is enough on
-    // webOS 10. webOS 11 keeps the remote on the hidden Home until the
-    // compositor handles a HOME key itself (an LG G5): neither the app manager's
-    // relaunch ("home") nor launching the card underneath again ("card") gave
-    // it back. So there BACK sends a HOME key through the TV's own input path
-    // ("key"), and the panel hides on the relaunch it brings, as for HOME.
-    // "none" only hides. back-mode in the launcher's folder overrides the
-    // choice (read at each show), to try them out on a TV; the panel log
-    // records what came of it.
+    // How BACK closes Homebar as System HOME: it hides the window ("none").
+    // On an LG G5 (webOS 11) the remote then stayed with the hidden panel,
+    // which neither the app manager's relaunch ("home"), launching the card
+    // underneath again ("card") nor a HOME key through the TV's input path
+    // ("key") cured; the window now claims BACK through its key mask (at
+    // start, below). The other ways stay selectable with back-mode in the
+    // launcher's folder (read at each show), for trying them on a TV; the
+    // panel log records what came of each.
     property string backMode: ""
     readonly property int webosMajor: parseInt(Config.webos || "0", 10) || 0
     function closeByBack() {
-        var mode = !nativeHome ? "none" : backMode || (webosMajor >= 11 ? "key" : "none");
+        var mode = !nativeHome ? "none" : backMode || "none";
         note("BACK close: mode " + mode);
         if (mode === "key") {
             home.http("/home-key", function(r) { note("BACK close: HOME key sent " + (r.returnValue === true)); },
@@ -110,6 +109,12 @@ WebOSWindow {
     }
 
     Component.onCompleted: {
+        // Homebar answers BACK itself. The default key mask leaves HOME, BACK and
+        // EXIT to the system, and on webOS 11 the compositor then took BACK as
+        // well, keeping the remote on the panel it had just hidden. HOME and
+        // EXIT stay with the system (claiming HOME breaks it).
+        try { win.keyMask = WebOSWindow.KeyMaskDefault | WebOSWindow.KeyMaskBack; note("key mask " + win.keyMask + " (BACK claimed)"); }
+        catch (e) { note("key mask not set: " + e); }
         var startup = startupParams();
         preloaded = isPreload(startup);   // ends the binding
         if (preloaded && !isQuiet(startup)) { win.visible = true; mapTimer.start(); }

@@ -1,7 +1,7 @@
 """Cold native parameters and warm HOME events; needs PySide6, offscreen Qt."""
 import importlib.util,json,tempfile
 from pathlib import Path
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QUrl, Qt
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 ROOT=Path(__file__).resolve().parents[1]
@@ -45,11 +45,20 @@ with tempfile.TemporaryDirectory() as tmp:
  # the hidden Home, so the card underneath is launched again to take it back.
  home=[o for o in win.findChildren(object) if o.property('closeReason') is not None][0]
  if not win.property('visible'):engine.rootContext().setContextProperty('params',{'n':2});rp.wait(300)
- home.setProperty('httpCalls',[])
- win.setProperty('backMode','');home.closeHome('back');rp.wait(300)
+ # BACK closes on its release: the window stays for the release the compositor delivers.
+ from PySide6.QtTest import QTest
+ win.requestActivate();rp.wait(200);home.forceActiveFocus()
+ home.setProperty('httpCalls',[]);win.setProperty('backMode','')
+ QTest.keyPress(win,Qt.Key_Escape);rp.wait(300)
+ assert win.property('visible') is True,'BACK press alone must not close'
+ QTest.keyRelease(win,Qt.Key_Escape);rp.wait(400)
+ assert win.property('visible') is False and not any('launch' in c or 'home-key' in c for c in home.property('httpCalls')),home.property('httpCalls')
+ print('PASS BACK closes the panel on its release, and only hides it by default')
+ engine.rootContext().setContextProperty('params',{'n':6});rp.wait(300);assert win.property('visible') is True
+ home.setProperty('httpCalls',[]);win.setProperty('backMode','key');home.closeHome('back');rp.wait(300)
  assert '/home-key' in home.property('httpCalls') and win.property('visible') is True,home.property('httpCalls')
  rp.wait(1000);assert win.property('visible') is False,'no relaunch came: hidden anyway'
- print('PASS BACK on webOS 11 sends a HOME key through the TV, and hides without an answer')
+ print('PASS back-mode key sends a HOME key through the TV, and hides without an answer')
  engine.rootContext().setContextProperty('params',{'n':3});rp.wait(300);assert win.property('visible') is True
  home.setProperty('httpCalls',[]);win.setProperty('backMode','card');home.closeHome('back');rp.wait(300)
  assert win.property('visible') is False and '/foreground' in home.property('httpCalls'),home.property('httpCalls')

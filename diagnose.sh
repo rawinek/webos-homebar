@@ -90,6 +90,12 @@ or_note() { out=$("$@" 2>/dev/null); if [ -n "$out" ]; then echo "$out"; else ec
         echo "apps listed: $(wget -q -T 20 -O - "$HELPER/apps" 2>/dev/null | grep -o '"id":' | wc -l)"
         helper /foreground
         helper /inputs
+        # How this TV's compositor treats BACK for overlay windows such as
+        # Homebar's (the webOS 11 BACK problem of System HOME).
+        if [ -f "$OVERLAY_BASE/native-home" ] && [ -d /usr/lib/qml/WebOSCompositor ]; then
+            echo "-- compositor: BACK policy and overlay windows"
+            grep -rn -E '_WEBOS_ACCESS_POLICY_KEYS_BACK|_WEBOS_WINDOW_TYPE_OVERLAY.*&&|ItemStateNormal' /usr/lib/qml/WebOSCompositor 2>/dev/null | sed 's|/usr/lib/qml/WebOSCompositor/||' | cut -c1-180 | head -n 30
+        fi
         # What the last HOME presses found and did (main.qml through the setup server).
         if [ -f /tmp/rawin-launcher-panel.log ]; then echo "-- panel log (last HOME presses)"; tail -n 40 /tmp/rawin-launcher-panel.log; fi
     else
