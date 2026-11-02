@@ -86,7 +86,7 @@ Launch method* changes it where more than one fits.
 | Method | What it is | Needs | Typical TV |
 | :--- | :--- | :--- | :--- |
 | **Home panel** | The panel runs *inside* LG's own QML Home, which keeps HOME, its window and its lifecycle | Root only | webOS 4 and 5 (e.g. LG C9) |
-| **System HOME (native)** | Homebar replaces LG's Home: HOME opens it directly. On webOS 9 to 11 LG's own Home is a Flutter app; Homebar puts its own QML host in its place | Root only; no Input Hook, no mapper | webOS 10 and 11 (e.g. LG B4); a trial on 6 to 9 (works on an LG C1, webOS 6.5) |
+| **System HOME (native)** | Homebar replaces LG's Home: HOME opens it directly. On webOS 9 to 11 LG's own Home is a Flutter app; Homebar puts its own QML host in its place | Root only; no Input Hook, no mapper | webOS 10 and 11 (e.g. LG B4, G5); a trial on 6 to 9 (works on an LG C1, webOS 6.5) |
 | **Additional overlay** | A separate app and root helper next to your Home. LG Home (or Luma, Glasshouse) keeps HOME; Homebar opens from its **app tile** or from a button you choose in its settings | Input Hook or Magic Mapper for a button (not for the tile) | webOS 6 or newer (checked on 10) |
 
 The overlay can also take HOME itself, through a binding in Input Hook
@@ -104,7 +104,7 @@ installs use. An update never changes the method.
 | 7.x (webOS 22, 2022) | Overlay, HOME via Input Hook; System HOME as a trial | Overlay tested on 7.5 (by a user); System HOME untested |
 | 8.x, 9.x (webOS 23, 24) | Overlay, HOME via Input Hook; System HOME as a trial | Untested |
 | 10.x (webOS 25, 2025) | **System HOME (native)**, or the additional overlay | Tested on 10.3: LG B4 (System HOME), LG UR78 (overlay, by a user) |
-| 11.x (webOS 26, 2026) | System HOME | Untested |
+| 11.x (webOS 26, 2026) | System HOME | Tested on 11.2 (LG G5, by a user) |
 
 LG names webOS after the year since 2022 (webOS 25 is version 10.x), and an
 older TV can be updated to a newer webOS, so go by the version the TV reports.

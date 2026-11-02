@@ -178,8 +178,9 @@ unsupported mapper cannot be updated safely, it stops with instructions to inspe
 and fix the unsupported configuration first. It does not uninstall either mapper.
 
 System HOME has been checked on an LG B4 (webOS 10.3): install, switching both
-ways in the settings, restarts. webOS 11, other launchers and the full matrix
-of mapper versions are tested locally only so far; reports are welcome.
+ways in the settings, restarts; a user runs it on an LG G5 (webOS 11.2). Other
+launchers and the full matrix of mapper versions are tested locally only so
+far; reports are welcome.
 
 ### Mapping a button to Homebar
 

@@ -61,8 +61,8 @@ case "$major" in
     *) name=", which LG calls webOS $((major + 15))" ;;
 esac
 case "$major" in
-    4|5|6|10) tested="tested on $major.x" ;;
-    *) tested="untested; 4.x, 5.x, 6.x and 10.x are the tested ones" ;;
+    4|5|6|10|11) tested="tested on $major.x" ;;
+    *) tested="untested; 4.x, 5.x, 6.x, 10.x and 11.x are the tested ones" ;;
 esac
 say "webOS ${version:-unknown}$name ($tested)"
 if [ -n "$trial" ]; then

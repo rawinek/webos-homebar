@@ -68,7 +68,8 @@ test TVs:
 
 - **Tested:** an LG B4 on webOS 10.3.1: install, update, switching between
   System HOME and the additional overlay in both directions, reboots in each
-  method, uninstall and a clean install. webOS 11 and other TVs are untested;
+  method, uninstall and a clean install. webOS 11 works on an LG G5 (11.2, by a
+  user); other TVs are untested;
   webOS 6 to 9 have the opt-in trial (`--try-native-home`,
   [install](install.md#trying-system-home-on-webos-6-to-9)); it worked on an LG C1 with webOS 6.5.3, where
   it replaces LG Home's program instead of its manifest.

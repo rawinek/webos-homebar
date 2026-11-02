@@ -14,7 +14,7 @@ ways. The installer picks by what the TV has, not by its version number:
 | Method | What it is | Needs | Where it fits |
 | :--- | :--- | :--- | :--- |
 | **Home panel** | The panel is loaded *inside* LG's Home, a QML app (webOS 4 and 5: the ribbon Home, e.g. LG C9); LG's HOME handling, window and lifecycle are kept | Root | webOS 3 to 5, where the patch fits |
-| **System HOME (native)** | Homebar replaces LG's Home. On webOS 9 to 11 LG's Home is a Flutter app; Homebar's own QML host (run by the system's `qml-runner`, with a native lifecycle) is mounted under LG Home's id (`com.webos.app.home`), so HOME, BACK out of an app and waking all open it. LG's files stay underneath, and the mount ends with a reboot (a boot hook applies it again) | Root; no Input Hook, no mapper | webOS 10 and 11 (tested on 10.3); webOS 6 to 9 as a trial (works on an LG C1 with 6.5.3) |
+| **System HOME (native)** | Homebar replaces LG's Home. On webOS 9 to 11 LG's Home is a Flutter app; Homebar's own QML host (run by the system's `qml-runner`, with a native lifecycle) is mounted under LG Home's id (`com.webos.app.home`), so HOME, BACK out of an app and waking all open it. LG's files stay underneath, and the mount ends with a reboot (a boot hook applies it again) | Root; no Input Hook, no mapper | webOS 10 and 11 (tested on 10.3 and 11.2); webOS 6 to 9 as a trial (works on an LG C1 with 6.5.3) |
 | **Additional overlay** | A separate overlay app plus a root helper; LG Home (or Luma, Glasshouse) keeps HOME. Homebar opens from its app tile or from a button set in Input Hook or Magic Mapper (*Launcher settings → Help → Remote button* does it) | The tile: nothing; a button: Input Hook or Magic Mapper; node 8 or newer | webOS 6 or newer (checked on 10) |
 
 The overlay can also bind HOME itself through Input Hook (*HOME via mapper*;
@@ -59,7 +59,7 @@ name next to it.
 | 8.x | webOS 23 | 2023 | QML, as far as known; the full-screen Home | Most likely the overlay, as on 6.x | Untested; System HOME: `--try-native-home` trial |
 | 9.x | webOS 24 | 2024 | Flutter, like 10.x | Overlay, HOME via Input Hook; LG's Home kept unless `--replace-lg-home`. System HOME is the most likely next one to work: Glasshouse and Luma replace LG's Home on it | Untested; System HOME: `--try-native-home` trial |
 | 10.x | webOS 25 | 2025 | Flutter | System HOME (Homebar as the TV's Home); the additional overlay when another launcher owns HOME; the overlay with the black stand-in for installs that bound HOME in Input Hook | **Tested on 10.3** (System HOME on a B4, overlay on a UR78) |
-| 11.x | webOS 26 | 2026 | Flutter, like 10.x | System HOME, as on 10.x (Glasshouse and Luma report it working) | Untested on hardware |
+| 11.x | webOS 26 | 2026 | Flutter, like 10.x | System HOME, as on 10.x | **Tested on 11.2** (LG G5, by a user) |
 
 What the untested rows rest on:
 
@@ -81,7 +81,9 @@ What the untested rows rest on:
   cannot reread a mounted Home manifest, so Luma replaces LG Home's program
   instead; Homebar's trial does the same on webOS 6, with a script that runs the
   system's `qml-runner` on Homebar's host (it worked on an LG C1, webOS 6.5.3).
-  Hence the gate on 10/11 and the opt-in trial on 6 to 9.
+  Hence the gate on 10/11 and the opt-in trial on 6 to 9. On webOS 11 the app
+  manager refuses that block unless it carries `forceBlockSystemApp` (its schema
+  lists the field), which Homebar sends there since 0.19.5.
 
 Other models with the tested webOS versions may work. If the patch does not
 fit a webOS 4 TV's Home (another firmware), the installer says so and stops
@@ -119,6 +121,7 @@ pills, one with DisplayPort or USB-C shows those too.
 | :--- | :--- | :--- | :--- | :--- |
 | LG OLED55C9PLA (C9, 2019) | 4.10.2 (webOS 4.5) | 05.50.00 | Home panel | 0.19.2 |
 | LG OLED77B46LA (B4, 2024) | 10.3.1 (webOS 25) | 33.31.68 | System HOME (native) and additional overlay | 0.19.1 |
+| LG OLED65G56LS (G5, 2025) | 11.2.0 (webOS 26) | 43.21.77 | System HOME (native) | 0.19.5-rc1, by a user |
 | LG 43UR78006LK (UR78, 2023, updated to webOS 25) | 10.3.2 (webOS 25) | 33.31.75 | Overlay, LG's Home kept (`--keep-lg-home`) | 0.14.0, by a user |
 | LG 43UM7100PLB (UM71, 2019) | 4.10.2 (webOS 4.5) | 05.40.97 | Home panel, with the TV's Home screen on *Basic* | 0.14.1, by a user |
 | LG OLED55B9PLA (B9, 2019) | 4.10.2 (webOS 4.5) | 05.50.00 | Home panel | 0.15.1, by a user |
