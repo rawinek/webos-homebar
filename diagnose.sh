@@ -90,6 +90,8 @@ or_note() { out=$("$@" 2>/dev/null); if [ -n "$out" ]; then echo "$out"; else ec
         echo "apps listed: $(wget -q -T 20 -O - "$HELPER/apps" 2>/dev/null | grep -o '"id":' | wc -l)"
         helper /foreground
         helper /inputs
+        # What the last HOME presses found and did (main.qml through the setup server).
+        if [ -f /tmp/rawin-launcher-panel.log ]; then echo "-- panel log (last HOME presses)"; tail -n 40 /tmp/rawin-launcher-panel.log; fi
     else
         echo "(Home panel: no helper; the panel talks to the TV from inside LG Home)"
     fi

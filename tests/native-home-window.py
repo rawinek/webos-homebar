@@ -29,3 +29,13 @@ with tempfile.TemporaryDirectory() as tmp:
  engine.rootContext().setContextProperty('params',{});rp.wait(300)
  assert win.property('visible') is True
  print('PASS repeated empty params still show on next HOME')
+ # A webOS 11 TV: the panel's window was still shown but had lost the focus to
+ # the picture; HOME must bring it up, not take it for "close".
+ from PySide6.QtGui import QWindow
+ other=QWindow();other.resize(100,100);other.show();other.requestActivate();rp.wait(200)
+ if not win.property('active'):
+  engine.rootContext().setContextProperty('params',{'n':1});rp.wait(300)
+  assert win.property('visible') is True and win.property('active') is True,'HOME hid an inactive window'
+  print('PASS HOME on a shown but inactive window shows it')
+ else: print('SKIP this Qt platform cannot take the focus from the window')
+ other.close()

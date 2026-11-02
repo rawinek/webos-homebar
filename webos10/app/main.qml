@@ -71,20 +71,42 @@ WebOSWindow {
     appId: nativeHome ? "com.webos.app.home" : "org.rawin.launcher"
     title: "Homebar"
 
+    // What each HOME found and did, for diagnose.sh (/tmp/rawin-launcher-panel.log,
+    // kept by the setup server): on a webOS 11 TV a first HOME sometimes did
+    // nothing, as if taken for "close" while nothing was on screen.
+    // Numbered: the posts can reach the server out of order.
+    property int noteCount: 0
+    function note(what) {
+        try {
+            var x = new XMLHttpRequest();
+            x.open("POST", "http://127.0.0.1:8898/panel-log");
+            x.send("#" + (++noteCount) + " " + (nativeHome ? "home: " : "overlay: ") + what + " | window " + (win.visible ? "shown" : "hidden")
+                   + (win.active ? ", active" : ", inactive") + ", panel " + (home.foreground ? "up" : "down"));
+        } catch (e) {}
+    }
+    onActiveChanged: if (initialized) note("window " + (active ? "active" : "inactive"))
+    onVisibleChanged: if (initialized) note("window " + (visible ? "shown" : "hidden"))
+
     // Each launch: HOME while the panel is up hides it, otherwise shows it;
     // the boot hook's preload only makes sure the process is there.
     onLaunchParamsChanged: {
         if (!initialized) return;
+        note("launch " + JSON.stringify(launchParams || {}).slice(0, 160));
         if (isPreload(launchParams)) return;
         // Settings → Remote button waiting for a press: the press may be the
         // button already bound to Homebar, whose launch must not hide the panel.
         if (win.visible && home.foreground && (home.buttonStep === "first" || home.buttonStep === "second")) return;
-        if (win.visible && home.foreground) hide(); else show();
+        // Up means up on the screen too: a window the system has taken the focus
+        // from (the TV hid or backgrounded it) gets shown, not hidden.
+        if (win.visible && home.foreground && win.active) { note("-> hide"); hide(); }
+        else { note("-> show"); show(); }
     }
 
     function show() {
         hideTimer.stop(); mapTimer.stop();
         win.visible = true;
+        // The window takes the focus too: the next HOME goes by it (see above).
+        win.requestActivate();
         home.foreground = true;
         home.forceActiveFocus();
         home.loadInputs();
