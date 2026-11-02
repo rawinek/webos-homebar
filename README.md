@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://github.com/rawinek/webos-homebar/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/rawinek/webos-homebar?label=release"></a>
-  <img alt="webOS 4, 5, 6, 7 and 10 tested" src="https://img.shields.io/badge/webOS-4%20%7C%205%20%7C%206%20%7C%207%20%7C%2010%20tested-a50034">
+  <img alt="webOS 4, 5, 6, 7, 10 and 11 tested" src="https://img.shields.io/badge/webOS-4%20%7C%205%20%7C%206%20%7C%207%20%7C%2010%20%7C%2011%20tested-a50034">
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/github/license/rawinek/webos-homebar"></a>
 </p>
 

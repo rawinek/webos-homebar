@@ -210,7 +210,7 @@ methods only backs up and restores its own earlier rules, as described above.
 
 ### Trying System HOME on webOS 6 to 9
 
-System HOME is tested on webOS 10, and the trial worked on an LG C1 with
+System HOME is tested on webOS 10 and 11, and the trial worked on an LG C1 with
 webOS 6.5.3. Other launchers replace LG's Home on webOS 7 and 9 as well
 (Glasshouse), so it may work there, but nobody has tried Homebar's version. If you would like to find out on your TV (Homebrew Channel
 and a root shell as for any install):
