@@ -54,6 +54,49 @@ WebOSWindow {
     // The app manager keeps its loading spinner on screen until a launched
     // app shows a window: a preloaded start maps the window for a moment,
     // with the panel faded out (nothing is drawn), and hides it again.
+    // How BACK closes Homebar as System HOME. Hiding the window is enough on
+    // webOS 10; webOS 11 keeps the remote on the hidden Home until HOME is
+    // pressed (an LG G5), so there the card underneath is launched again to
+    // take it back ("card"). "home" asks the app manager for what HOME does
+    // instead; "none" only hides. back-mode in the launcher's folder overrides
+    // the choice (read at each show), to try them out on a TV; the panel log
+    // records what came of it.
+    property string backMode: ""
+    readonly property int webosMajor: parseInt(Config.webos || "0", 10) || 0
+    function closeByBack() {
+        var mode = !nativeHome ? "none" : backMode || (webosMajor >= 11 ? "card" : "none");
+        var front = home.frontAppId;
+        note("BACK close: mode " + mode + ", under it " + (front || "nothing"));
+        if (mode === "home") {
+            home.http("/launch?id=com.webos.app.home&params=" + encodeURIComponent(JSON.stringify({activateType: "home", launchType: "homeKey"})),
+                      function() { note("BACK close: Home launched"); }, function(s) { note("BACK close: launching Home failed " + s); });
+            backFallback.restart();
+        } else {
+            hide();
+            if (mode === "card" && front)
+                home.http("/launch?id=" + encodeURIComponent(front), function(r) { note("BACK close: " + front + " launched " + (r.returnValue === true)); },
+                          function(s) { note("BACK close: launching " + front + " failed " + s); });
+        }
+        afterBack.count = 0; afterBack.interval = 600; afterBack.restart();
+    }
+    // "home": the app manager's relaunch hides the panel as HOME does; if none
+    // comes, the panel is hidden anyway.
+    Timer { id: backFallback; interval: 1000; onTriggered: if (win.visible && home.foreground) { note("BACK close: no relaunch came; hiding"); hide(); } }
+    // What the TV has in front after a BACK close, twice: whether Home still
+    // counts as shown there tells the ways out apart.
+    Timer {
+        id: afterBack; property int count: 0; interval: 600; repeat: true
+        onTriggered: {
+            var when = "BACK +" + (count === 0 ? "0.6" : "2.4") + " s";
+            home.http("/foreground", function(r) {
+                var list = r.foregroundAppInfo || [], parts = [];
+                for (var i = 0; i < list.length; i++) parts.push(list[i].appId + "/" + String(list[i].windowType || "").replace("_WEBOS_WINDOW_TYPE_", ""));
+                note(when + ": in front " + (parts.join(", ") || "nothing"));
+            });
+            if (++count >= 2) stop(); else interval = 1800;
+        }
+    }
+
     Component.onCompleted: {
         var startup = startupParams();
         preloaded = isPreload(startup);   // ends the binding
@@ -61,8 +104,9 @@ WebOSWindow {
         // Launching the regular app tile while takeover is enabled must bring
         // the Home instance forward, not leave two independent panels running.
         initialized = true;
-        if (!nativeHome) home.http("/home", function(r) {
-            if (r.nativeHome) home.http("/launch?id=com.webos.app.home", function() { win.hide(); Qt.quit(); });
+        home.http("/home", function(r) {
+            win.backMode = r.backMode || "";
+            if (!nativeHome && r.nativeHome) home.http("/launch?id=com.webos.app.home", function() { win.hide(); Qt.quit(); });
         });
     }
     Timer { id: mapTimer; interval: 500; onTriggered: if (!home.foreground) win.visible = false }
@@ -114,6 +158,8 @@ WebOSWindow {
         home.foreground = true;
         home.forceActiveFocus();
         home.loadInputs();
+        // back-mode is read again at each show, so trying another needs no restart.
+        home.http("/home", function(r) { win.backMode = r.backMode || ""; });
     }
     function hide() {
         home.foreground = false;   // runs the panel's 180 ms fade-out
@@ -125,7 +171,7 @@ WebOSWindow {
         id: home
         anchors.fill: parent
         foreground: !win.preloaded
-        onCloseRequested: win.hide()
+        onCloseRequested: if (home.closeReason === "back") win.closeByBack(); else win.hide()
         // A timeout is not a BACK press: hide this overlay window only, so
         // the system keeps the Magic Remote pointer where it is.
         onTimeoutRequested: win.hide()

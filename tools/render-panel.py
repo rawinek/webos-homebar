@@ -101,6 +101,7 @@ def panel(app_dir):
     # Counted, so a test can see the close-apps shortcut call its service.
     stubs += "    QtObject { id: closeAppsService; function callService(a) { shell.notice = 'closeAppsCalled'; } }\n"
     stubs += "    function loadInputs() {}\n    function updateRun(step, channel) {}\n    function backupRun(step, data) {}\n    function restartHomebar() {}\n    function modeRun(mode) { shell.notice = 'mode:' + mode; }\n"
+    stubs += "    property var httpCalls: []\n    function http(pathname, done, failed, body) { httpCalls.push(pathname); }\n"
     stubs += "    function buttonLoadRun() {}\n    function buttonCaptureRun(id, fresh) {}\n    function buttonBindRun(code) {}\n    function buttonUnbindRun() {}\n"
     (app_dir / "Launcher.qml").write_text(q[:start] + stubs + q[end:])
     (app_dir / "WebOS.js").write_text(".pragma library\nvar Key_webOS_Back = 461;\nvar Key_webOS_Yellow = 405;\nvar Key_webOS_Red = 403;\n")

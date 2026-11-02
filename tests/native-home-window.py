@@ -9,7 +9,7 @@ s=importlib.util.spec_from_file_location('render',ROOT/'tools/render-panel.py');
 app=QGuiApplication([])
 with tempfile.TemporaryDirectory() as tmp:
  d=Path(tmp);rp.panel(d)
- with (d/'Config.js').open('a') as f:f.write('\nvar nativeHome = true;\n')
+ with (d/'Config.js').open('a') as f:f.write('\nvar nativeHome = true;\nvar webos = "11.2.0";\n')
  q=(ROOT/'webos10/app/main.qml').read_text().replace('import Eos.Window 0.1','').replace('WebOSWindow {','Window {\n    property string appId\n    property string windowType')
  q=q.replace('    Panel {','    Launcher {').replace('Qt.application.arguments','testNativeArguments')
  args=['qml-runner',json.dumps({'appId':'com.webos.app.home','parameters':{'preload':True}})]
@@ -41,3 +41,21 @@ with tempfile.TemporaryDirectory() as tmp:
   print('PASS HOME on a shown but inactive window maps it again and shows it')
  else: print('SKIP this Qt platform cannot take the focus from the window')
  other.close()
+ # webOS 11 (issue #16): BACK only hid the window and the TV kept the remote on
+ # the hidden Home, so the card underneath is launched again to take it back.
+ home=[o for o in win.findChildren(object) if o.property('frontAppId') is not None][0]
+ if not win.property('visible'):engine.rootContext().setContextProperty('params',{'n':2});rp.wait(300)
+ home.setProperty('frontAppId','netflix');home.setProperty('httpCalls',[])
+ win.setProperty('backMode','');home.closeHome('back');rp.wait(400)
+ assert win.property('visible') is False and '/launch?id=netflix' in home.property('httpCalls'),home.property('httpCalls')
+ print('PASS BACK on webOS 11 hides the panel and launches the card underneath again')
+ engine.rootContext().setContextProperty('params',{'n':3});rp.wait(300);assert win.property('visible') is True
+ home.setProperty('httpCalls',[]);win.setProperty('backMode','home');home.closeHome('back');rp.wait(300)
+ calls=home.property('httpCalls');assert any(c.startswith('/launch?id=com.webos.app.home') for c in calls),calls
+ assert win.property('visible') is True,'back-mode home waits for the relaunch'
+ rp.wait(1000);assert win.property('visible') is False,'no relaunch came: hidden anyway'
+ print('PASS back-mode home asks the app manager, and hides after a second without an answer')
+ engine.rootContext().setContextProperty('params',{'n':4});rp.wait(300)
+ home.setProperty('httpCalls',[]);win.setProperty('backMode','');home.closeHome('home');rp.wait(300)
+ assert win.property('visible') is False and not any('launch' in c for c in home.property('httpCalls')),'a HOME key close launches nothing'
+ print('PASS a HOME that reached the panel as a key only hides it')

@@ -168,7 +168,12 @@ const server = http.createServer(async (req, res) => {
         const stage = fs.statSync('/var/lib/webosbrew/rawin-launcher-home/' + (nativeHome() ? 'native-app' : 'app'));
         mounted = home.ino === stage.ino && home.dev === stage.dev;
       } catch (e) {}
-      return send(res, 200, { returnValue: true, lgHome: !mounted, nativeHome: nativeHomeMounted(), configuredNativeHome: nativeHome() });
+      // back-mode: how BACK closes the System HOME panel, for trying the ways
+      // out on a TV (card, home or none; empty: the panel's own choice).
+      let backMode = '';
+      try { backMode = fs.readFileSync('/var/lib/webosbrew/rawin-launcher-home/back-mode', 'utf8').trim(); } catch (e) {}
+      if (!/^(card|home|none)$/.test(backMode)) backMode = '';
+      return send(res, 200, { returnValue: true, lgHome: !mounted, nativeHome: nativeHomeMounted(), configuredNativeHome: nativeHome(), backMode: backMode });
     }
     if (url.pathname === '/foreground') {
       return send(res, 200, await luna('luna://com.webos.applicationManager/getForegroundAppInfo', { extraInfo: true }));

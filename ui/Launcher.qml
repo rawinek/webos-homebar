@@ -391,7 +391,14 @@ FocusScope {
     property color glowColor: hero.color
     Behavior on glowColor { ColorAnimation { duration: shell.dur(300) } }
 
-    function closeHome() { closeRequested(); }
+    // Why the panel closes itself: "back" for BACK and the Back-to-picture tile,
+    // "home" for a HOME that reached it as a key. The overlay host closes by
+    // BACK differently as System HOME on webOS 11 (webos10/app/main.qml).
+    property string closeReason: ""
+    function closeHome(reason) { closeReason = reason || "back"; closeRequested(); }
+    // The card in front under the panel (an input or app), from the last look
+    // at the foreground: what BACK gives the remote back to there.
+    property string frontAppId: ""
     // The timeout deliberately counts only actual input. Qt can send hover
     // events for a pointer that has not moved, so pointerMoved() calls this
     // only after its coordinate check; keys, clicks and wheel scrolls call it
@@ -1490,7 +1497,7 @@ FocusScope {
         noteActivity();
         if (isHomeKey(event.key)) {
             event.accepted = true;
-            if (!event.isAutoRepeat && editIndex < 0 && Date.now() - foregroundSince > 600) closeHome();
+            if (!event.isAutoRepeat && editIndex < 0 && Date.now() - foregroundSince > 600) closeHome("home");
             return;
         }
         // The mode popups take every key while they are up; BACK answers No.
