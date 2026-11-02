@@ -17,10 +17,11 @@
 # once. Each step is noted in /tmp/rawin-launcher-boot.log with the seconds
 # since boot (diagnose.sh shows it; on webOS 10 logger lines do not reach
 # /var/log/messages).
-# Finish or roll back an interrupted settings change before deciding which
-# host to preload. Keep the journal on failure for diagnosis, not a new takeover.
+# Roll back an interrupted settings change before deciding which host to
+# preload. A journal that cannot be undone is set aside for diagnosis (not
+# kept as a lock that would stop the helper at every boot).
 if [ -d /var/lib/webosbrew/rawin-launcher-home/mode-switch-lock ]; then
-  sh /var/lib/webosbrew/rawin-launcher-home/mode-switch.sh recover || exit 1
+  sh /var/lib/webosbrew/rawin-launcher-home/mode-switch.sh settle || exit 1
 fi
 LOG=/tmp/rawin-launcher-boot.log
 INPUTHOOK=/media/developer/apps/usr/palm/services/org.webosbrew.inputhook.service

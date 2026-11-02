@@ -81,8 +81,11 @@ if [ -n "$probe" ]; then
     exit 0
 fi
 
+# An interrupted launch method change is undone first, by this package's
+# script: an older installed one could stop at a journal it cannot undo, and
+# then no install could ever run again. What still cannot be undone is set aside.
 if [ -d /var/lib/webosbrew/rawin-launcher-home/mode-switch-lock ]; then
-    sh /var/lib/webosbrew/rawin-launcher-home/mode-switch.sh recover || fail "mode recovery failed"
+    sh "$HERE/webos10/mode-switch.sh" settle || fail "a launch method change is still running; try again in a minute"
 fi
 # Keep an explicitly enabled native Home across updates without needing a mapper.
 if [ "$force" = panel ] && { [ -f /var/lib/webosbrew/rawin-launcher-home/native-home ] || [ -f /var/lib/webosbrew/rawin-launcher-home/additional-overlay ]; }; then

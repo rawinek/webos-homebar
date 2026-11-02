@@ -11,6 +11,7 @@ def run(release='10.3.1',panel=False,setup=lambda t:None,expected='native',args=
   script=re.sub(r'(?<![\w/])(?:/var/lib/|/etc/starfish-release)',lambda v:str(t.root)+v[0],script)
   (bundle/'install.sh').write_text(script)
   (bundle/'webos10/integration.js').write_text(t.p(m.BASE+'/integration.js').read_text())
+  (bundle/'webos10/mode-switch.sh').write_text(t.p(m.BASE+'/mode-switch.sh').read_text())
   (bundle/'probe.sh').write_text('if [ "$1" = panel ]; then exit '+('0' if panel else '1')+'; fi\nexit 0\n')
   (bundle/'webos10/install.sh').write_text('echo OVERLAY_ARGS:$*\n')
   (bundle/'webos4/install.sh').write_text('echo PANEL_INSTALL\n')
@@ -49,4 +50,10 @@ for release in ('6.5.3','7.5.0','8.3.0','9.2.2'):
 for release in ('10.3.1','11.0.0','5.5.0','4.10.0'):
  assert '--try-native-home is for' in run(release,args=('--try-native-home',),fails=True)
 run(args=('--overlay',),expected='legacy');run(args=('--additional-overlay',),expected='overlay')
-print('PASS 15 install policies: fresh defaults, supported native, ribbon, compatibility, other Home, unknown mapper, existing installs and explicit choices')
+# Issue #15: a journal no recovery can undo used to stop every install with
+# "mode recovery failed". It is set aside and the install goes on.
+def stuck(t):
+ lock=m.BASE+'/mode-switch-lock';t.put(m.BASE+'/VERSION','0.19.4');t.put(lock+'/ready','');t.put(lock+'/app','org.rawin.launcher\n');t.put(lock+'/paths','')
+ t.put(m.KEYS,'{}');t.put(lock+'/mapper-journal.json',json.dumps({'entries':[{'kind':'input','file':str(t.p(m.KEYS)),'before':'{"x":1}','after':'{"y":2}','mode':384}]}))
+run(setup=stuck,expected='legacy')
+print('PASS 16 install policies: fresh defaults, supported native, ribbon, compatibility, other Home, unknown mapper, existing installs, explicit choices, a stuck mode journal')

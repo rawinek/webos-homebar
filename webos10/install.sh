@@ -24,8 +24,11 @@ HOOK=/var/lib/webosbrew/init.d/10-rawin-launcher   # before Glasshouse's 20-/50-
 KEYS=/home/root/.config/lginputhook/keybinds.json
 HOME_KEY=773   # the remote's HOME button as Input Hook reports it
 
-# Recover using the installed scripts before reading the mode or updating files.
-if [ -d "$BASE/mode-switch-lock" ]; then sh "$BASE/mode-switch.sh" recover || exit 1; fi
+# Undo an interrupted launch method change before reading the mode or updating
+# files (what cannot be undone is set aside: see mode-switch.sh settle).
+if [ -d "$BASE/mode-switch-lock" ]; then
+    sh "$HERE/mode-switch.sh" settle || { echo 'rawin-launcher: a launch method change is still running; try again in a minute' >&2; exit 1; }
+fi
 NATIVE_HOME=
 WAS_NATIVE=
 [ ! -f "$BASE/native-home" ] || WAS_NATIVE=1

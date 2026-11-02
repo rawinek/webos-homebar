@@ -114,7 +114,13 @@ holding BACK*); ordinary HOME never switches input. Its process preloader is
 off in this mode and *Restart* targets the Home host. Changing the method
 (*Launch method*) is a journalled switch (`mode-switch.sh`): a failure or power
 loss rolls back, and afterwards the card that was in front is brought back and
-the panel opened above it. `native-home.sh disable` copies Homebar's database
+the panel opened above it. The rollback runs again at the next boot, install
+or uninstall if it was cut short. It does not relaunch an app that is gone, and
+it leaves a Home that another launcher took meanwhile to that launcher (System
+HOME then gives way to the additional overlay). A journal that still cannot be
+undone is moved aside as `mode-switch-lock.failed-<time>` rather than blocking
+them. Each switch and rollback writes its steps to `mode-switch.log`, which
+survives a reboot; `diagnose.sh` shows both. `native-home.sh disable` copies Homebar's database
 back and restores the earlier Homebar binding; other key bindings stay.
 
 On webOS 6 to 9 the same method is a trial (`--try-native-home`): the install

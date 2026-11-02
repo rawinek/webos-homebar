@@ -346,8 +346,9 @@ binding. An inactive mapper is reported so you can check its startup.
 
 Updates keep the selected mode. Interrupted changes have a recovery journal;
 failed changes restore the previous data and mapper rules where safe. If a
-concurrent edit prevents recovery, it is preserved and Diagnose retains the
-recovery information. Older releases do not understand these modes: reverting
+concurrent edit prevents recovery, the journal is set aside (installing,
+uninstalling and starting the TV go on) and Diagnose shows it with the steps of
+the last changes. Older releases do not understand these modes: reverting
 requires a separate rollback procedure.
 
 Magic Mapper support follows the [upstream configuration format](https://github.com/andrewfraley/magic_mapper#configuring-buttons).

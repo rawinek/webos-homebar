@@ -49,14 +49,30 @@ luna() { luna-send -n 1 "luna://com.webos.applicationManager/$1" "$2" 2>/dev/nul
 ok() { grep -q '"returnValue": *true'; }
 
 # sam reads one system app again after it is blocked and released; the release
-# is sent whatever the block answered, so Home is never left blocked.
-reread() {
-  luna blockSystemApp '{"id":"com.webos.app.home"}' >/dev/null
+# is sent whatever the block answered, so Home is never left blocked. Newer
+# sams (webOS 11) refuse a block without forceBlockSystemApp when their schema
+# lists it; a release answered "not blocked" leaves Home free all the same.
+block() {
+  if grep -q '"forceBlockSystemApp"' /etc/palm/schemas/sam/applicationManager.blockSystemApp.schema 2>/dev/null; then
+    luna blockSystemApp '{"id":"com.webos.app.home","forceBlockSystemApp":false}'
+  else
+    luna blockSystemApp '{"id":"com.webos.app.home"}'
+  fi
+}
+release() {
   for _ in 1 2 3; do
-    luna releaseBlockSystemApp '{"id":"com.webos.app.home"}' | ok && return 0
+    answer=$(luna releaseBlockSystemApp '{"id":"com.webos.app.home"}')
+    printf '%s' "$answer" | ok && return 0
+    printf '%s' "$answer" | grep -qi 'not[^"]*blocked' && return 0
     sleep 1
   done
+  log "release of Home refused: $(printf '%s' "$answer" | tr -d '\n' | cut -c1-200)"
   return 1
+}
+reread() {
+  answer=$(block)
+  printf '%s' "$answer" | ok || printf '%s' "$answer" | grep -qi 'already[^"]*blocked' || log "block of Home refused: $(printf '%s' "$answer" | tr -d '\n' | cut -c1-200)"
+  release
 }
 
 # Whether sam reports Home's type as $1 within 20 s.
@@ -173,7 +189,7 @@ case "$1" in
     # SAM's preload manager can respawn the QML host between stopping it and
     # unmounting its files. Block Home first, then stop again under that block.
     # Releasing below happens only after the original manifest is visible.
-    luna blockSystemApp '{"id":"com.webos.app.home"}' >/dev/null
+    block >/dev/null
     [ ! -f "$BASE/native-home" ] || sh "$BASE/native-home.sh" stop
     if mounted && ! umount "$HOMEAPP"; then reread; exit 1; fi
     reread || exit 1

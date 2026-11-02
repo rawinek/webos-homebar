@@ -4,7 +4,7 @@
 BASE=/var/lib/webosbrew/rawin-launcher-home
 KEYS=/home/root/.config/lginputhook/keybinds.json
 
-if [ -d "$BASE/mode-switch-lock" ]; then sh "$BASE/mode-switch.sh" recover || exit 1; fi
+if [ -d "$BASE/mode-switch-lock" ]; then sh "$BASE/mode-switch.sh" settle || exit 1; fi
 # Remove only our rules in both mappers before removing the application. An
 # unknown active mapper needs manual cleanup rather than a dead HOME shortcut.
 if [ -f "$BASE/integration.js" ]; then

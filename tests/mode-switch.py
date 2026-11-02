@@ -23,7 +23,7 @@ class TV:
   if mapper:self.put(KEYS,json.dumps({'773':{'action':'launch','id':'org.rawin.launcher'},'1042':{'action':'launch','id':'other.app'},'500':{'action':'launch','id':'org.rawin.launcher'}}))
   for src,dst in [('mode-switch.sh','mode-switch.sh'),('native-home.sh','native-home.sh'),('native-trial.sh','native-trial.sh'),('home-takeover.sh','takeover.sh'),('integration.js','integration.js'),('uninstall.sh','uninstall.sh')]:
    s=(ROOT/'webos10'/src).read_text()
-   s=re.sub(r'(?<![\w/])(?:/var/lib/|/media/developer/|/usr/palm/|/usr/bin/qml-runner|/usr/bin/com.webos.app.home|/home/root/|/etc/starfish-release|/proc/|/tmp/)',lambda m:str(self.root)+m[0],s)
+   s=re.sub(r'(?<![\w/])(?:/var/lib/|/media/developer/|/usr/palm/|/usr/bin/qml-runner|/usr/bin/com.webos.app.home|/home/root/|/etc/starfish-release|/etc/palm/|/proc/|/tmp/)',lambda m:str(self.root)+m[0],s)
    s=s.replace("readdirSync('/proc')", "readdirSync('"+str(self.root)+"/proc')")
    s=s.replace('ls -di ', 'ls -diL ')
    self.put(BASE+'/'+dst,s)
@@ -42,6 +42,8 @@ if uri.endswith('/launch') and (r/'fail-launch').exists():
 if uri.endswith('/dev/remove'):
  (r/'media/developer/apps/usr/palm/applications/org.rawin.launcher/appinfo.json').unlink(missing_ok=True);print('{"returnValue":true}');sys.exit(0)
 if uri.endswith('/dev/install'):print('{"state":"installed"}');sys.exit(0)
+if uri.endswith('/releaseBlockSystemApp') and (r/'release-not-blocked').exists():
+ print('{"returnValue":false,"errorText":"com.webos.app.home is not blocked"}');sys.exit(0)
 if uri.endswith('/getAppInfo'):
  info=json.loads((r/'usr/palm/applications/com.webos.app.home/appinfo.json').read_text());print(json.dumps({'returnValue':True,'appInfo':info}))
 else:print('{"returnValue":true}')
@@ -173,6 +175,80 @@ def test():
    assert t.p(BASE+'/additional-overlay').exists()==(old=='overlay')
    assert not t.p(BASE+'/mode-switch-lock').exists();count+=1
   finally:t.clean()
+ # webOS 11 (issue #15): sam's schema lists forceBlockSystemApp, and a release
+ # answered "not blocked" still lets Home be read again.
+ t=TV()
+ try:
+  t.put('/etc/palm/schemas/sam/applicationManager.blockSystemApp.schema','{"properties":{"id":{},"forceBlockSystemApp":{"type":"boolean"}}}')
+  t.put('/release-not-blocked','')
+  t.switch('native');calls=t.p('/calls').read_text()
+  assert '"forceBlockSystemApp":false' in calls and t.p(BASE+'/native-home').exists(),calls;count+=1
+ finally:t.clean()
+ t=TV()
+ try:
+  t.switch('native');assert 'forceBlockSystemApp' not in t.p('/calls').read_text(),'older sams get the old request';count+=1
+ finally:t.clean()
+ def interrupted(old,new):
+  t=TV(old);t.put('/pause-launch','')
+  proc=subprocess.Popen(['sh',str(t.p(BASE+'/mode-switch.sh')),new],env=t.env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)
+  for _ in range(300):
+   if t.p('/paused').exists():break
+   time.sleep(.02)
+  assert t.p('/paused').exists(),'did not reach launch phase'
+  return t,proc
+ def kill(t,proc):
+  os.killpg(proc.pid,signal.SIGKILL);proc.wait();t.p('/pause-launch').unlink()
+ # Issue #15: the overlay app was removed after a switch was interrupted. Recovery
+ # must not wait on launching it, or no install, uninstall or boot gets past it.
+ t,proc=interrupted('legacy','native')
+ try:
+  kill(t,proc);shutil.rmtree(t.p(APP));t.put('/fail-launch','')
+  t.switch('recover')
+  assert not t.p(BASE+'/mode-switch-lock').exists() and not t.p(BASE+'/native-home').exists()
+  assert 'not installed' in t.p(BASE+'/mode-switch.log').read_text();count+=1
+ finally:t.clean()
+ # The first failure in issue #15: a fresh install's System HOME failed, and the
+ # rollback could not put back a stand-in that never was (sam refused it too).
+ # LG Home stays and the lock goes.
+ t,proc=interrupted('legacy','native')
+ try:
+  kill(t,proc);t.put('/fail-mount','')
+  t.switch('recover')
+  assert not t.p(BASE+'/mode-switch-lock').exists() and not t.p(HOME).is_symlink()
+  assert 'LG Home kept' in t.p(BASE+'/mode-switch.log').read_text();count+=1
+ finally:t.clean()
+ # Another launcher took Home while a switch out of System HOME was interrupted:
+ # its mount stays, its Home is not launched as ours, and the install goes on as
+ # the additional overlay.
+ t,proc=interrupted('native','overlay')
+ try:
+  kill(t,proc);t.foreign();before=len(t.p('/calls').read_text())
+  t.switch('recover')
+  assert not t.p(BASE+'/mode-switch-lock').exists()
+  assert t.p(HOME).resolve()==t.p('/foreign').resolve(),'foreign Home untouched'
+  assert not t.p(BASE+'/native-home').exists() and t.p(BASE+'/additional-overlay').exists()
+  assert 'launch {"id":"com.webos.app.home"}' not in t.p('/calls').read_text()[before:];count+=1
+ finally:t.clean()
+ # A journal that cannot be undone (a mapper file changed by hand meanwhile) is
+ # set aside by settle, which callers then get past.
+ t=TV()
+ try:
+  lock=BASE+'/mode-switch-lock';t.put(lock+'/ready','');t.put(lock+'/app','org.rawin.launcher\n');t.put(lock+'/paths','')
+  t.put(lock+'/mapper-journal.json',json.dumps({'entries':[{'kind':'input','file':str(t.p(KEYS)),'before':'{"x":1}','after':'{"y":2}','mode':384}]}))
+  t.run('mode-switch.sh','recover',False)
+  r=t.run('mode-switch.sh','settle')
+  assert not t.p(lock).exists() and 'could not be fully undone' in r.stderr,r.stderr
+  aside=[p for p in t.p(BASE).iterdir() if p.name.startswith('mode-switch-lock.failed-')]
+  assert len(aside)==1 and (aside[0]/'mapper-journal.json').exists();count+=1
+ finally:t.clean()
+ # A switch that is still running is never set aside.
+ t,proc=interrupted('legacy','overlay')
+ try:
+  pid=t.p(BASE+'/mode-switch-lock/pid').read_text().strip()
+  t.put('/proc/'+pid+'/cmdline','sh\0'+str(t.p(BASE+'/mode-switch.sh'))+'\0overlay\0')
+  t.run('mode-switch.sh','settle',False);assert t.p(BASE+'/mode-switch-lock/ready').exists();count+=1
+  kill(t,proc)
+ finally:t.clean()
  t=TV('native')
  try:
   t.put('/fail-umount','');t.switch('overlay',False)

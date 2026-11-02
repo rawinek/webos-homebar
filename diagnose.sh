@@ -47,6 +47,16 @@ or_note() { out=$("$@" 2>/dev/null); if [ -n "$out" ]; then echo "$out"; else ec
     done
     echo "overlay app: $(version_of $APPS/org.rawin.launcher)"
     echo "boot hooks: $(ls /var/lib/webosbrew/init.d 2>/dev/null | tr '\n' ' ')"
+    # A launch method change that was interrupted (the lock) or could not be
+    # undone (set aside), and the steps of the last changes: where one failed.
+    for lock in "$OVERLAY_BASE"/mode-switch-lock "$OVERLAY_BASE"/mode-switch-lock.failed-*; do
+        [ -d "$lock" ] || continue
+        echo "-- ${lock#$OVERLAY_BASE/}: $(ls "$lock" | tr '\n' ' ')"
+        for f in app pid ready runtime-restored result.json mapper-journal.json activate.txt; do
+            [ -f "$lock/$f" ] && echo "   $f: $(head -c 300 "$lock/$f" | tr '\n' ' ')"
+        done
+    done
+    if [ -f "$OVERLAY_BASE/mode-switch.log" ]; then echo "-- mode-switch.log"; tail -n 40 "$OVERLAY_BASE/mode-switch.log"; fi
 
     section "LG Home"
     luna luna://com.webos.applicationManager/getAppInfo '{"id":"com.webos.app.home"}' | grep -o -E '"(type|version|main)": *"[^"]*"'
