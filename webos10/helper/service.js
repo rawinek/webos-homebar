@@ -34,13 +34,21 @@ const APP_DIR = '/media/developer/apps/usr/palm/applications/' + APP;
 const CACHE = APP_DIR + '/cache';
 const NATIVE_HOME = '/var/lib/webosbrew/rawin-launcher-home/native-home';
 function nativeHome() { return fs.existsSync(NATIVE_HOME); }
-function nativeHomeMounted() {
-  if (!nativeHome()) return false;
+function sameFile(a, b) {
   try {
-    const home = fs.statSync('/usr/palm/applications/com.webos.app.home');
-    const stage = fs.statSync('/var/lib/webosbrew/rawin-launcher-home/native-app');
-    return home.ino === stage.ino && home.dev === stage.dev && !modeControl.foreignHome();
+    const x = fs.statSync(a), y = fs.statSync(b);
+    return x.ino === y.ino && x.dev === y.dev;
   } catch (e) { return false; }
+}
+// Whether Homebar stands in LG Home's place: Home's folder is the staged host
+// (stage: native-app or app), or, for System HOME on webOS 6 (home-takeover.sh),
+// LG Home's program is Homebar's script and the folder stays LG's.
+function homeIsOurs(stage) {
+  return sameFile('/usr/palm/applications/com.webos.app.home', '/var/lib/webosbrew/rawin-launcher-home/' + stage) ||
+         (nativeHome() && sameFile('/usr/bin/com.webos.app.home', '/var/lib/webosbrew/rawin-launcher-home/home-exe'));
+}
+function nativeHomeMounted() {
+  return nativeHome() && homeIsOurs('native-app') && !modeControl.foreignHome();
 }
 function panelId() { return nativeHomeMounted() ? 'com.webos.app.home' : APP; }
 const ICON_ROOTS = ['/usr/palm/', '/media/cryptofs/apps/', '/media/developer/apps/', '/mnt/lg/'];
@@ -161,13 +169,8 @@ const server = http.createServer(async (req, res) => {
     // Whether LG's Home is still the real one (installed with --keep-lg-home, or
     // the stand-in is not mounted): then the panel offers "Original Home".
     if (url.pathname === '/home') {
-      // Same test as takeover.sh: the Home folder is the staged stand-in.
-      let mounted = false;
-      try {
-        const home = fs.statSync('/usr/palm/applications/com.webos.app.home');
-        const stage = fs.statSync('/var/lib/webosbrew/rawin-launcher-home/' + (nativeHome() ? 'native-app' : 'app'));
-        mounted = home.ino === stage.ino && home.dev === stage.dev;
-      } catch (e) {}
+      // Same test as takeover.sh: Home's folder (or program) is the stand-in.
+      const mounted = homeIsOurs(nativeHome() ? 'native-app' : 'app');
       // back-mode: how BACK closes the System HOME panel, for trying the ways
       // out on a TV (key, card, home or none; empty: the panel's own choice).
       let backMode = '';
@@ -267,7 +270,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (url.pathname === '/state') {
       return send(res, 200, { lastInput: returner.lastInput, target: returner.target, card: returner.card,
-                             subscribed: subscribed, preload: nativeHome() ? { mode: 'system Home', running: nativeHomeMounted() && panelRunning(fs, '/usr/palm/applications/com.webos.app.home') } : preloader.state(), nativeHome: nativeHome(), events: events });
+                             subscribed: subscribed, preload: nativeHome() ? { mode: 'system Home', running: nativeHomeMounted() && (panelRunning(fs, '/usr/palm/applications/com.webos.app.home') || panelRunning(fs, BASE + '/native-app/')) } : preloader.state(), nativeHome: nativeHome(), events: events });
     }
     // The TV's UI language ("pl-PL"), for the launcher's "system language".
     if (url.pathname === '/locale') {

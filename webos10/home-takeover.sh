@@ -134,9 +134,8 @@ case "$1" in
     if [ -f "$BASE/integration.js" ]; then
       case "$(node "$BASE/integration.js" owner)" in lg|native|legacy) ;; *) log 'another or unknown Home owner; refusing takeover'; exit 1 ;; esac
     fi
-    # sam answers only once it is up (at boot this hook runs early).
-    for _ in $(seq 60); do luna getAppInfo '{"id":"com.webos.app.home"}' | ok && break; sleep 2; done
-    log 'stand-in: app manager up'
+    # webOS 6: the program is replaced without sam, so it is done before sam is
+    # up; otherwise HOME opens LG's Home for the first minute after a boot.
     if [ -n "$EXE_MODE" ]; then
       if ! mounted && grep -qE " ($EXE|$HOMEAPP)(/[^ ]*)? " /proc/mounts; then
         log 'another Home mount is present; refusing takeover'
@@ -154,6 +153,9 @@ case "$1" in
       log 'qml Homebar in place of the Home program'
       exit 0
     fi
+    # sam answers only once it is up (at boot this hook runs early).
+    for _ in $(seq 60); do luna getAppInfo '{"id":"com.webos.app.home"}' | ok && break; sleep 2; done
+    log 'stand-in: app manager up'
     # Never stack a takeover over an unrelated launcher or a different mode.
     if ! mounted && grep -qF " $HOMEAPP " /proc/mounts; then
       log 'another Home mount is present; refusing takeover'
