@@ -58,12 +58,11 @@ WebOSWindow {
     // On an LG G5 (webOS 11) the remote then stayed with the hidden panel,
     // which neither the app manager's relaunch ("home"), launching the card
     // underneath again ("card") nor a HOME key through the TV's input path
-    // ("key") cured; the window now claims BACK through its key mask (at
-    // start, below). The other ways stay selectable with back-mode in the
-    // launcher's folder (read at each show), for trying them on a TV; the
+    // ("key") cured: BACK never reached the panel there. The window now claims
+    // BACK (at start, below). The other ways stay selectable with back-mode in
+    // the launcher's folder (read at each show), for trying them on a TV; the
     // panel log records what came of each.
     property string backMode: ""
-    readonly property int webosMajor: parseInt(Config.webos || "0", 10) || 0
     function closeByBack() {
         var mode = !nativeHome ? "none" : backMode || "none";
         note("BACK close: mode " + mode);
@@ -109,12 +108,16 @@ WebOSWindow {
     }
 
     Component.onCompleted: {
-        // Homebar answers BACK itself. The default key mask leaves HOME, BACK and
-        // EXIT to the system, and on webOS 11 the compositor then took BACK as
-        // well, keeping the remote on the panel it had just hidden. HOME and
-        // EXIT stay with the system (claiming HOME breaks it).
-        try { win.keyMask = WebOSWindow.KeyMaskDefault | WebOSWindow.KeyMaskBack; note("key mask " + win.keyMask + " (BACK claimed)"); }
-        catch (e) { note("key mask not set: " + e); }
+        // Homebar answers BACK itself, and says so with the access policy LG's
+        // own overlays carry (Luma sets the same). Without it the compositor of
+        // webOS 11 kept BACK: it hid the panel without telling it and left the
+        // remote on the invisible window until HOME (an LG G5). webOS 10 adds the
+        // policy to overlay windows by itself. One key at a time: the map takes
+        // new keys and passes each to the compositor; assigning it whole fails.
+        try {
+            win.windowProperties["_WEBOS_ACCESS_POLICY_KEYS_BACK"] = "true";
+            note("BACK claimed: " + win.windowProperties["_WEBOS_ACCESS_POLICY_KEYS_BACK"]);
+        } catch (e) { note("BACK not claimed: " + e); }
         var startup = startupParams();
         preloaded = isPreload(startup);   // ends the binding
         if (preloaded && !isQuiet(startup)) { win.visible = true; mapTimer.start(); }
