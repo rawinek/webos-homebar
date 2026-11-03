@@ -47,6 +47,8 @@ INPUTS = [("PlayStation 5", True), ("Apple TV 4K", True), ("Nintendo Switch", Tr
 NOTES = ("### New\n\u2022 The weather in the chip at the top, for a place chosen on a phone.\n"
          "\u2022 The clock, what is on screen and the weather can each be hidden.\n\n### Fixed\n\u2022 Something small.")
 INPUTS_SMALL = [("Blu-ray Player", True), ("", False)]
+EXTRA_INPUTS = [{"id": "com.webos.app.externalinput.av1", "title": "AV 1", "label": "", "cec": "", "name": "", "present": False, "type": "av"}]
+USB = [{"id": "usb:usb_1", "deviceId": "usb_1", "title": "USB 1", "label": "SanDisk", "cec": "", "name": "SanDisk", "present": True, "type": "usb"}]
 
 MAIN = '''import QtQuick
 Item {
@@ -64,6 +66,7 @@ Item {
         shell.settings = shell.validSettings(s.settings || {});
         shell.favouriteIds = s.favs; shell.allInputs = s.inputs;
         shell.hiddenIds = s.hidden || []; shell.hiddenInputs = s.hiddenInputs || [];
+        shell.shownInputs = s.shownInputs || []; shell.usbDrives = s.usb || [];
         shell.usage = s.usage || {};
         shell.updateInfo = {state: s.updateState || "idle", latest: "9.9.9", failed: "", notes: s.notes || ""};
         if (s.weather) shell.weather = s.weather;
@@ -175,6 +178,11 @@ def main():
             scene("apps", page="apps", selected=14),
             scene("apps-az-hidden", page="apps", selected=13, settings=dict(theme, sort="az", showHidden=True), hidden=["kids", "kodi"]),
             scene("system-update", page="system", selected=1, updateState="available"),
+            # The Inputs page: Live TV, the HDMI inputs, AV and a USB drive; the drive is on the row.
+            scene("inputs", page="inputs", selected=5, settings=dict(theme, tv=True), inputs=inputs(INPUTS) + EXTRA_INPUTS, usb=USB, shownInputs=[USB[0]["id"]]),
+            scene("home-usb", page="home", selected=11, inputs=inputs(INPUTS) + EXTRA_INPUTS, usb=USB, shownInputs=[USB[0]["id"]]),
+            scene("home-shortcut-inputs", page="home", selected=13),
+            scene("inputs-icons", page="inputs", selected=6, settings=dict(theme, tv=True, inputText="iconLabel"), inputs=inputs(INPUTS) + EXTRA_INPUTS, usb=USB, shownInputs=[USB[0]["id"]]),
             scene("settings-about", page="settings", setting="about"),
             scene("settings", page="settings", setting="theme"),
             scene("settings-end", page="settings", setting="beta", updateState="available"),

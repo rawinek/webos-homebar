@@ -55,8 +55,9 @@ const ICON_ROOTS = ['/usr/palm/', '/media/cryptofs/apps/', '/media/developer/app
 const HTTP_PORT = 8899;
 // What the panel may open besides the apps it listed: the inputs, LG's Home
 // and the System page's tiles (LG's settings app is not a launch point, so it
-// is never in the list), and Live TV, which some TVs leave out of the list too.
-const SYSTEM_IDS = /^(com\.webos\.app\.(livetv|hdmi\d|dp\d|usbc\d|home|discovery)|com\.palm\.app\.settings|org\.webosbrew\.(hbchannel|piccap))$/;
+// is never in the list), Live TV, which some TVs leave out of the list too,
+// the analogue inputs and LG's media player (USB drives open in it).
+const SYSTEM_IDS = /^(com\.webos\.app\.(livetv|hdmi\d|dp\d|usbc\d|externalinput\.(av\d|component|scart)|mediadiscovery|photovideo|home|discovery)|com\.palm\.app\.settings|org\.webosbrew\.(hbchannel|piccap))$/;
 
 const service = new Service(APP + '.service');
 
@@ -165,6 +166,10 @@ const server = http.createServer(async (req, res) => {
     }
     if (url.pathname === '/inputs') {
       return send(res, 200, await luna('luna://com.webos.service.eim/getAllInputStatus', {}));
+    }
+    // USB drives plugged in, for the Inputs page (opened in LG's media player).
+    if (url.pathname === '/usb') {
+      return send(res, 200, await luna('luna://com.webos.service.attachedstoragemanager/listDevices', { deviceType: ['usb'] }));
     }
     // Whether LG's Home is still the real one (installed with --keep-lg-home, or
     // the stand-in is not mounted): then the panel offers "Original Home".

@@ -37,6 +37,10 @@ FocusScope {
     // as "hidden" and "hiddenInputs".
     property var hiddenIds: []
     property var hiddenInputs: []
+    // The other way round for sources that are off the row until chosen
+    // (USB drives, AV, Component, SCART): those put on it, saved as
+    // "shownInputs". See onRowByDefault().
+    property var shownInputs: []
     // How often each app was opened from here ("usage"): the Apps order "most used".
     property var usage: ({})
     // The glow colour read from each app's icon ("colors": {id: {icon, accent}}),
@@ -68,8 +72,13 @@ FocusScope {
         });
         return list;
     }
+    // A source's icon: Live TV's own, the one chosen for an input, or by
+    // default the port's (HDMI, or the USB, AV, Component and SCART symbols).
     function sourceIcon(source) {
-        return source && source.kind === "tv" ? DeviceIcons.tvIcon(settings.tvIcon).id : DeviceIcons.icon(source && settings.inputIcons[source.id]).id;
+        if (source && source.kind === "tv") return DeviceIcons.tvIcon(settings.tvIcon).id;
+        var chosen = source && settings.inputIcons[source.id];
+        var port = source && /^(usb|av|component|scart)$/.test(source.type || "") ? source.type : "hdmi";
+        return DeviceIcons.icon(chosen || port).id;
     }
     function sourceIconIndex() { return DeviceIcons.index(sourceIcon(iconSource), editIconChoices); }
     function sourceIconTitle() {
@@ -128,7 +137,10 @@ FocusScope {
     // A hidden source keeps its place in sourceOrder, so switching it back on
     // puts it where it was. The inputs are the ones the TV listed.
     property var allInputs: Config.inputs
-    readonly property var allSources: allSourcesFor(allInputs, hiddenInputs, settings)
+    // USB drives plugged in now (the attached storage manager), opened in
+    // LG's media player. Listed with the inputs, off the row until chosen.
+    property var usbDrives: []
+    readonly property var allSources: allSourcesFor(allInputs.concat(usbDrives), hiddenInputs, shownInputs, settings)
     readonly property var sources: allSources.filter(function(s) { return !s.hidden; })
     readonly property int sourceCount: sources.length
     readonly property var inputs: allInputs.filter(function(d) { return hiddenInputs.indexOf(d.id) < 0; })
@@ -279,6 +291,7 @@ FocusScope {
         } else if (key === "homeShortcuts") {
             list.push({id: "closeApps", title: t("close_apps_title"), on: settings.homeCloseApps === true});
             list.push({id: "apps", title: t("apps_title"), on: settings.homeApps !== false});
+            list.push({id: "inputs", title: t("inputs_title"), on: settings.homeInputs !== false});
         } else if (key === "topBar") {
             list.push({id: "clock", title: t("set_clock"), on: settings.clock !== false});
             list.push({id: "nowApp", title: t("set_now_app"), on: settings.nowApp !== false});
@@ -291,10 +304,10 @@ FocusScope {
     }
     function toggleCheck(key, id) {
         if (key === "sources") {
-            if (id === "tv") setSetting("tv", settings.tv !== true);
-            else toggleHiddenInput(id);
+            toggleHiddenInput(id);
         } else if (key === "homeShortcuts") {
             if (id === "closeApps") setSetting("homeCloseApps", settings.homeCloseApps !== true);
+            else if (id === "inputs") setSetting("homeInputs", settings.homeInputs === false);
             else setSetting("homeApps", settings.homeApps === false);
         } else if (key === "topBar") {
             setSetting(id, settings[id] === false);
@@ -499,9 +512,11 @@ FocusScope {
         // the two optional ones and system, whose place can change too.
         if (value === "appsClose") value = ["apps", "closeApps"];
         else if (value === "closeApps") value = ["closeApps", "apps"];
-        var out = [], allowed = ["closeApps", "apps", "system"], i;
+        var out = [], allowed = ["closeApps", "apps", "inputs", "system"], i;
         if (value && value.length !== undefined) for (i=0; i<value.length; i++)
             if (allowed.indexOf(value[i]) >= 0 && out.indexOf(value[i]) < 0) out.push(value[i]);
+        // Inputs (new in a saved order from before it) goes in front of System.
+        if (out.indexOf("inputs") < 0 && out.indexOf("system") >= 0) out.splice(out.indexOf("system"), 0, "inputs");
         for (i=0; i<allowed.length; i++) if (out.indexOf(allowed[i]) < 0) out.push(allowed[i]);
         return out;
     }
@@ -520,6 +535,8 @@ FocusScope {
         for (var i=0; i<order.length; i++) {
             if (order[i] === "apps" && s.homeApps !== false)
                 list.push({title: t("apps_title"), action: "apps", symbol: "apps"});
+            else if (order[i] === "inputs" && s.homeInputs !== false)
+                list.push({title: t("inputs_title"), action: "inputs", symbol: "inputs"});
             else if (order[i] === "closeApps" && s.homeCloseApps === true)
                 list.push({title: t(memoryOptimizerAvailable && s.closeAppsMode === "memory" ? "val_close_memory" : "val_close_apps"), action: "closeApps", symbol: "clean"});
             else if (order[i] === "system")
@@ -802,9 +819,10 @@ FocusScope {
             // also falls back to closing background apps.
             closeAppsMode: memoryOptimizerAvailable && s.closeAppsMode === "memory" ? "memory" : "apps",
             homeApps: s.homeApps !== false,
+            homeInputs: s.homeInputs !== false,
             homeActionOrder: homeActionOrderFor(s.homeActionOrder),
             showHidden: s.showHidden === true,
-            exitTo: /^(last|none|com\.webos\.app\.(livetv|(hdmi|dp|usbc)\d))$/.test(s.exitTo) ? s.exitTo : "last",
+            exitTo: /^(last|none|com\.webos\.app\.(livetv|(hdmi|dp|usbc)\d|externalinput\.(av\d|component|scart)))$/.test(s.exitTo) ? s.exitTo : "last",
             clock: s.clock !== false,
             // Up to 0.14 "clock" showed or hid the whole chip: what is on
             // screen and the weather follow it until they are set themselves.
@@ -837,9 +855,10 @@ FocusScope {
         return fallback;
     }
     function loadExtras() {
-        var h = loaded("hidden", []), hi = loaded("hiddenInputs", []);
+        var h = loaded("hidden", []), hi = loaded("hiddenInputs", []), si = loaded("shownInputs", []);
         hiddenIds = h.length !== undefined ? h : [];
         hiddenInputs = hi.length !== undefined ? hi : [];
+        shownInputs = si.length !== undefined ? si : [];
         var u = loaded("usage", {}), c = loaded("colors", {});
         usage = typeof u === "object" && u.length === undefined ? u : {};
         iconColors = typeof c === "object" && c.length === undefined ? c : {};
@@ -877,18 +896,27 @@ FocusScope {
     // Live TV (always known, "tv") and the inputs from the TV, in the saved
     // order: the ids in sourceOrder first, then anything listed since, so a
     // new input appears after the arranged ones.
-    function allSourcesFor(list, hiddenList, s) {
-        var all = [{id: "tv", title: t("live_tv"), label: "", cec: "", name: "", present: true, kind: "tv", hidden: s.tv !== true}], i, j;
+    function allSourcesFor(list, hiddenList, shownList, s) {
+        var all = [{id: "tv", title: t("live_tv"), label: "", cec: "", name: "", present: true, kind: "tv", type: "tv", hidden: s.tv !== true}], i, j;
         for (i=0; i<list.length; i++)
             all.push({id: list[i].id, title: list[i].title, label: list[i].label || "", cec: list[i].cec || "",
                       name: list[i].name || "", present: list[i].present !== false, kind: "input",
-                      hidden: hiddenList.indexOf(list[i].id) >= 0});
+                      type: list[i].type || "hdmi", deviceId: list[i].deviceId || "",
+                      hidden: onRowByDefault(list[i].type) ? hiddenList.indexOf(list[i].id) >= 0 : shownList.indexOf(list[i].id) < 0});
         var order = s.sourceOrder || [], out = [];
         for (i=0; i<order.length; i++)
             for (j=0; j<all.length; j++)
                 if (all[j].id === order[i] && out.indexOf(all[j]) < 0) out.push(all[j]);
         for (j=0; j<all.length; j++) if (out.indexOf(all[j]) < 0) out.push(all[j]);
         return out;
+    }
+    // HDMI and the other digital video ports are on the Home row until taken
+    // off; USB drives and the analogue inputs only once put on it (the Inputs
+    // page, or Launcher settings → Inputs and TV).
+    function onRowByDefault(type) { return !type || type === "hdmi" || type === "dp" || type === "usbc"; }
+    function sourceById(id) {
+        for (var i=0; i<allSources.length; i++) if (allSources[i].id === id) return allSources[i];
+        return null;
     }
     // Opened from here: counts for the "most used" order.
     function noteLaunch(id) {
@@ -904,6 +932,9 @@ FocusScope {
         if (currentPage === "apps") {
             var app = appList[index] || {title: ""};
             h = {title: app.title, sub: hiddenIds.indexOf(app.id) >= 0 ? t("hidden_sub") : "", color: styleFor(app.id).accent};
+        } else if (currentPage === "inputs") {
+            var listed = allSources[index] || {title: ""};
+            h = {title: sourceHeading(listed), sub: listed.hidden ? t("off_row_sub") : "", color: neutral};
         } else if (currentPage === "system") {
             var tool = toolList[index] || {title: ""};
             h = {title: tool.title, sub: "", color: neutral};
@@ -946,6 +977,11 @@ FocusScope {
             var fav = app && keys.indexOf(app.id) >= 0, hid = app && hiddenIds.indexOf(app.id) >= 0;
             return [hint([ok], t("hint_open")), hint([hold, yellow], fav ? t("hint_remove_fav") : t("hint_add_fav")),
                     hint([red], hid ? t("hint_unhide") : t("hint_hide")), hint([back], t("hint_favourites"))];
+        }
+        if (currentPage === "inputs") {
+            var listedSource = allSources[index];
+            return [hint([ok], t("hint_open")), hint([hold, yellow], listedSource && !listedSource.hidden ? t("hint_remove_row") : t("hint_add_row")),
+                    hint([back], t("hint_favourites"))];
         }
         if (currentPage === "system") return [hint([ok], t("hint_open")), hint([back], t("hint_favourites"))];
         if (currentPage === "settings") {
@@ -1062,6 +1098,7 @@ FocusScope {
         if (!action || action.action === "system") return;
         if (action.action === "apps") setSetting("homeApps", false);
         else if (action.action === "closeApps") setSetting("homeCloseApps", false);
+        else if (action.action === "inputs") setSetting("homeInputs", false);
         editActionIndex = -1;
         notice = t("removed_shortcut");
         selected = Math.max(0, Math.min(selected, favSlots + sourceCount + homeActions.length - 1));
@@ -1090,11 +1127,14 @@ FocusScope {
         selected = Math.max(0, Math.min(selected, apps.length-1));
     }
     function toggleHiddenInput(id) {
-        var ids = hiddenInputs.slice(0), at = ids.indexOf(id);
-        if (at >= 0) { ids.splice(at, 1); notice = t("unhidden_input"); }
-        else { ids.push(id); notice = t("hidden_input"); }
-        hiddenInputs = ids;
-        save(hiddenInputs, "hiddenInputs");
+        if (id === "tv") { setSetting("tv", settings.tv !== true); notice = t(settings.tv ? "unhidden_input" : "hidden_input"); return; }
+        var source = sourceById(id), byDefault = !source || onRowByDefault(source.type);
+        var ids = (byDefault ? hiddenInputs : shownInputs).slice(0), at = ids.indexOf(id);
+        // hiddenInputs lists what left the row, shownInputs what joined it.
+        if (at >= 0) ids.splice(at, 1); else ids.push(id);
+        notice = t((at >= 0) === byDefault ? "unhidden_input" : "hidden_input");
+        if (byDefault) { hiddenInputs = ids; save(hiddenInputs, "hiddenInputs"); }
+        else { shownInputs = ids; save(shownInputs, "shownInputs"); }
         // On Home the row got shorter; in the settings menu the row stays.
         if (page === "home") selected = Math.max(0, Math.min(selected, favSlots + sourceCount + homeActions.length - 1));
     }
@@ -1110,6 +1150,7 @@ FocusScope {
         pendingRemoval = "";
         if (!ready || launching) return;
         if (page === "apps") { if (apps[selected]) toggleFavourite(apps[selected]); }
+        else if (page === "inputs") { if (allSources[selected]) toggleHiddenInput(allSources[selected].id); }
         else if (page !== "home") return;
         else if (selected < favCount) { editIndex = editIndex === selected ? -1 : selected; notice = ""; }
         else if (selected >= favSlots && selected < favSlots + sourceCount) {
@@ -1119,7 +1160,8 @@ FocusScope {
         }
     }
     // The TV's inputs from eim getAllInputStatus: HDMI, and DisplayPort or
-    // USB-C where a set has them. title is the port's own name ("HDMI 2");
+    // USB-C where a set has them, and the analogue AV, Component and SCART
+    // inputs of a set that lists them (type says which). title is the port's own name ("HDMI 2");
     // name is the one the pill can show under or instead of it: the label set
     // on the TV when it is not just the port, else the HDMI-CEC name (subList
     // SIMPLINK), else nothing. The owner asked for the label to win.
@@ -1127,10 +1169,15 @@ FocusScope {
         var next = [];
         for (var i=0; i<devices.length; i++) {
             var d = devices[i];
-            var kind = !d.appId ? "" : d.appId.indexOf("com.webos.app.hdmi") === 0 ? "HDMI"
-                : d.appId.indexOf("com.webos.app.dp") === 0 ? "DP" : d.appId.indexOf("com.webos.app.usbc") === 0 ? "USB-C" : "";
+            var a = d.appId || "", ext = "com.webos.app.externalinput.";
+            var kind = a.indexOf("com.webos.app.hdmi") === 0 ? "HDMI" : a.indexOf("com.webos.app.dp") === 0 ? "DP"
+                : a.indexOf("com.webos.app.usbc") === 0 ? "USB-C" : a.indexOf(ext + "av") === 0 ? "AV"
+                : a === ext + "component" ? "Component" : a === ext + "scart" ? "SCART" : "";
             if (!kind) continue;
-            var port = kind + " " + d.port;
+            var type = {"HDMI": "hdmi", "DP": "dp", "USB-C": "usbc", "AV": "av", "Component": "component", "SCART": "scart"}[kind];
+            // AV comes numbered by its app (av1, av2); the others by their port.
+            var number = kind === "AV" ? a.slice((ext + "av").length) : type === "component" || type === "scart" ? "" : String(d.port || "");
+            var port = number ? kind + " " + number : kind;
             var label = d.label && d.label !== port ? d.label : "";
             var cec = "", subs = d.subList || [];
             for (var j=0; j<subs.length; j++) if (subs[j].id === "SIMPLINK" && subs[j].osdName) { cec = subs[j].osdName; break; }
@@ -1139,12 +1186,33 @@ FocusScope {
             // webOS 10: activate) or a device answers over HDMI-CEC.
             var present = !!(d.hdmiPlugIn || d.activate || cec);
             next.push({id: d.appId, title: kind === "HDMI" ? port : (d.label || port), label: label, cec: cec,
-                       name: name, present: present});
+                       name: name, present: present, type: type});
         }
         return next;
     }
     function setInputs(next) {
         if (next.length && !same(next, allInputs)) allInputs = next;
+    }
+    // USB drives from the attached storage manager's listDevices: one entry
+    // each, named after the drive, numbered by its port.
+    function usbFrom(devices) {
+        var next = [];
+        for (var i=0; i<devices.length; i++) {
+            var d = devices[i];
+            if (d.deviceType !== "usb" || !d.deviceId) continue;
+            var port = d.portNum > 0 ? (d.portNum < 16 ? d.portNum : Math.round(d.portNum / 16)) : 0;
+            // The drive's name stands where an input's label does.
+            next.push({id: "usb:" + d.deviceId, deviceId: d.deviceId, title: port ? "USB " + port : "USB",
+                       label: d.deviceName || "", cec: "", name: d.deviceName || "", present: true, type: "usb"});
+        }
+        return next;
+    }
+    function setUsb(next) { if (!same(next, usbDrives)) usbDrives = next; }
+    // LG's media player: Photo & Video up to webOS 5, Media Player after it.
+    function usbApp() {
+        if (appById("com.webos.app.mediadiscovery")) return "com.webos.app.mediadiscovery";
+        if (appById("com.webos.app.photovideo")) return "com.webos.app.photovideo";
+        return (parseInt(Config.webos || "0", 10) || 0) >= 6 ? "com.webos.app.mediadiscovery" : "com.webos.app.photovideo";
     }
     function describe(appId) {
         if (!appId || appId === "com.webos.app.home") return false;
@@ -1338,20 +1406,23 @@ FocusScope {
             return;
         }
         if (item.action === "closeApps") { runCloseApps(); return; }
-        if (item.action === "apps" || item.action === "system") {
+        if (item.action === "apps" || item.action === "system" || item.action === "inputs") {
             page = item.action; selected = 0; return;
         }
         // "tv" is the saved rail identity, not LG's application id. Resolve
         // it here so both the Home panel and overlay launch the real app.
-        var launchId = item.kind === "tv" ? "com.webos.app.livetv" : item.id;
+        var launchId = item.kind === "tv" ? "com.webos.app.livetv" : item.type === "usb" ? usbApp() : item.id;
+        // A USB drive opens in the media player, straight on that drive.
+        var launchParams = item.type === "usb" ? {requestDevice: item.deviceId} : {};
         noteLaunch(launchId);
         launching = true;
         launchTimeout.restart();
-        launchService.callService({id: launchId, params: {}, reason: "launcher"});
+        launchService.callService({id: launchId, params: launchParams, reason: "launcher"});
     }
     function itemAt(index) {
         if (page === "apps") return apps[index];
         if (page === "system") return tools[index];
+        if (page === "inputs") return allSources[index];
         if (page === "settings") return settingsItems[index];
         if (showAddTile && index === 0) return addFavouritesTile;
         if (index < favCount) return favourites[index];
@@ -1361,7 +1432,7 @@ FocusScope {
     // Favourites and settings, in one file next to the launcher on the TV.
     function backupData() {
         return {saved: new Date().toISOString(), version: Config.version, favourites: favouriteIds, settings: settings,
-                hidden: hiddenIds, hiddenInputs: hiddenInputs, usage: usage};
+                hidden: hiddenIds, hiddenInputs: hiddenInputs, shownInputs: shownInputs, usage: usage};
     }
     function applyBackup(b) {
         if (!b || typeof b !== "object" || !b.saved) return false;
@@ -1370,6 +1441,7 @@ FocusScope {
         if (Config.exitTarget) exitTargetChosen(settings.exitTo);
         hiddenIds = b.hidden && b.hidden.length !== undefined ? b.hidden : []; save(hiddenIds, "hidden");
         hiddenInputs = b.hiddenInputs && b.hiddenInputs.length !== undefined ? b.hiddenInputs : []; save(hiddenInputs, "hiddenInputs");
+        shownInputs = b.shownInputs && b.shownInputs.length !== undefined ? b.shownInputs : []; save(shownInputs, "shownInputs");
         usage = b.usage && typeof b.usage === "object" ? b.usage : {}; save(usage, "usage");
         return true;
     }
@@ -1449,7 +1521,7 @@ FocusScope {
             else return false;
             return true;
         }
-        var count = page === "home" ? favSlots+sourceCount+homeActions.length : page === "apps" ? apps.length : tools.length;
+        var count = page === "home" ? favSlots+sourceCount+homeActions.length : page === "apps" ? apps.length : page === "inputs" ? allSources.length : tools.length;
         var columns = page === "apps" ? appColumns : count;
         if (key === Qt.Key_Left) { if (selected % columns > 0) selected--; }
         else if (key === Qt.Key_Right) { if (selected % columns < columns-1 && selected+1 < count) selected++; }
@@ -1460,7 +1532,7 @@ FocusScope {
         } else if (isOk(key)) activate(itemAt(selected));
         else if (isBack(key)) {
             if (page === "home") closeHome();
-            else { selected = favSlots + sourceCount + homeActionIndex(page === "apps" ? "apps" : "system"); page = "home"; }
+            else { selected = favSlots + sourceCount + homeActionIndex(page === "apps" || page === "inputs" ? page : "system"); page = "home"; }
         } else return false;
         return true;
     }
@@ -1479,7 +1551,7 @@ FocusScope {
     property real okSince: 0
     property int okKey: 0
     function holdable() {
-        if (page === "apps") return true;
+        if (page === "apps" || page === "inputs") return true;
         if (page !== "home" || editIndex >= 0 || editSourceIndex >= 0 || editActionIndex >= 0) return false;
         if (selected < favCount) return true;
         return selected >= favSlots && selected < favSlots + sourceCount + homeActions.length;
@@ -1886,6 +1958,8 @@ FocusScope {
             if (page === "apps") selected=Math.max(0, Math.min(selected, apps.length-1));
         }
     }
+    // A drive pulled out while the Inputs page is up: the focus stays in range.
+    onAllSourcesChanged: if (page === "inputs") selected = Math.max(0, Math.min(selected, allSources.length-1))
     // What stays visible under the transparent top: the card behind Home.
     Service {
         id: foregroundInfo
@@ -1911,13 +1985,20 @@ FocusScope {
         }
     }
     // Inputs and the devices on them, read again each time Home opens.
-    function loadInputs() { inputService.callService({}); }
+    function loadInputs() { inputService.callService({}); usbService.callService({deviceType: ["usb"]}); }
     Service {
         id: inputService
         appId: "com.webos.app.home"
         service: "com.webos.service.eim"
         method: "getAllInputStatus"
         onCallSuccess: setInputs(response.devices ? inputsFrom(response.devices) : [])
+    }
+    Service {
+        id: usbService
+        appId: "com.webos.app.home"
+        service: "com.webos.service.attachedstoragemanager"
+        method: "listDevices"
+        onCallSuccess: setUsb(response.devices ? usbFrom(response.devices) : [])
     }
     // Updates: update.sh, run as root through the Homebrew Channel's exec.
     function updateRun(step, channel) {
@@ -2021,6 +2102,10 @@ FocusScope {
             c.fillStyle = c.strokeStyle; c.fill();
         } else if (symbol === "apps") {
             c.roundedRect(7,7,11,11,3,3); c.roundedRect(22,7,11,11,3,3); c.roundedRect(7,22,11,11,3,3); c.roundedRect(22,22,11,11,3,3);
+        } else if (symbol === "inputs") {
+            // A screen with an arrow going in: the inputs.
+            c.roundedRect(11,8,24,18,3,3); c.moveTo(18,32); c.lineTo(28,32); c.moveTo(23,26); c.lineTo(23,32);
+            c.moveTo(4,17); c.lineTo(19,17); c.moveTo(14,12); c.lineTo(19,17); c.lineTo(14,22);
         } else if (symbol === "clean") {
             c.roundedRect(8,12,24,20,3,3); c.moveTo(6,12); c.lineTo(34,12); c.moveTo(16,7); c.lineTo(24,7); c.moveTo(15,18); c.lineTo(15,27); c.moveTo(20,18); c.lineTo(20,27); c.moveTo(25,18); c.lineTo(25,27);
         }
@@ -2450,6 +2535,12 @@ FocusScope {
                         }
                     }
                 }
+                // On the Inputs page: a dot on the sources that are on the Home row.
+                Rectangle {
+                    visible: shell.page === "inputs" && pill.entry !== undefined && pill.entry !== null && !pill.entry.hidden
+                    x: parent.width-shell.px(20); y: -shell.px(6); width: shell.px(26); height: width; radius: width/2; z: 3
+                    color: shell.theme.focus; border.width: shell.px(3); border.color: shell.theme.gap
+                }
                 MouseArea {
                     id: pillPointer
                     enabled: !shell.editInputIcon
@@ -2515,6 +2606,12 @@ FocusScope {
                     border.width: Math.max(1, 2*shell.u); border.color: shell.warning
                 }
 
+                // On the Inputs page: a dot on the sources that are on the Home row.
+                Rectangle {
+                    visible: shell.page === "inputs" && tvCell.entry !== undefined && tvCell.entry !== null && !tvCell.entry.hidden
+                    x: parent.width-shell.px(20); y: -shell.px(6); width: shell.px(26); height: width; radius: width/2; z: 3
+                    color: shell.theme.focus; border.width: shell.px(3); border.color: shell.theme.gap
+                }
                 MouseArea {
                     id: tvPointer
                     enabled: !shell.editInputIcon
@@ -2537,7 +2634,8 @@ FocusScope {
             property int rev: 0
             Repeater {
                 id: sourceTwins
-                model: sources
+                // Every source, also those off the row: the Inputs page shows them all.
+                model: allSources
                 onItemAdded: titleTwins.rev++
                 onItemRemoved: titleTwins.rev++
                 Item {
@@ -2813,6 +2911,26 @@ FocusScope {
                 width: parent.width; radius: width/2; color: shell.theme.focus
                 height: parent.height*appGrid.height/appGrid.contentHeight
                 y: (parent.height-height)*appGrid.contentY/Math.max(1, appGrid.contentHeight-appGrid.height)
+            }
+        }
+
+        // Inputs: every source the TV has, Live TV and USB drives included, as
+        // pills like on the Home row, in its order; a dot marks the ones on it.
+        // Too many for the width, and the row is drawn a little smaller.
+        Row {
+            id: inputsRow
+            visible: page === "inputs"
+            x: shell.margin; y: shell.railY; height: shell.tile; spacing: shell.sourceGap
+            transformOrigin: Item.Left
+            scale: Math.min(1, (shell.width - 2*shell.margin) / Math.max(1, width))
+            Repeater {
+                model: page === "inputs" ? shell.allSources : []
+                Loader {
+                    anchors.verticalCenter: parent.verticalCenter
+                    sourceComponent: modelData.kind === "tv" ? tvTile : pillTile
+                    z: item && item.chosen ? 2 : 0
+                    onLoaded: { item.entry = modelData; item.navIndex = index; }
+                }
             }
         }
 

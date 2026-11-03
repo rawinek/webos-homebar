@@ -468,6 +468,48 @@
       "license": "Apache-2.0",
       "upstream": "https://raw.githubusercontent.com/Templarian/MaterialDesign/2424e748e0cc63ab7b9c095a099b9fe239b737c0/svg/satellite-variant.svg",
       "sha256": "8b5439ab3e48f956bd87ee92f9bdea4b43edee36a4935a5e874f6ec5d38f7b19"
+    },
+    {
+      "id": "usb",
+      "title": "USB drive",
+      "titleKey": "device_usb",
+      "group": "port",
+      "repository": "https://github.com/Templarian/MaterialDesign",
+      "revision": "2424e748e0cc63ab7b9c095a099b9fe239b737c0",
+      "license": "Apache-2.0",
+      "upstream": "https://raw.githubusercontent.com/Templarian/MaterialDesign/2424e748e0cc63ab7b9c095a099b9fe239b737c0/svg/usb-flash-drive.svg",
+      "sha256": "b32669940ba8fcdbd91a5f9b23e4b3ba2b168b38d30d1701b7b05292009b5a81"
+    },
+    {
+      "id": "av",
+      "title": "AV",
+      "group": "port",
+      "repository": "https://github.com/Templarian/MaterialDesign",
+      "revision": "2424e748e0cc63ab7b9c095a099b9fe239b737c0",
+      "license": "Apache-2.0",
+      "upstream": "https://raw.githubusercontent.com/Templarian/MaterialDesign/2424e748e0cc63ab7b9c095a099b9fe239b737c0/svg/video-input-svideo.svg",
+      "sha256": "c880c40346a2d14f81526de236311e6fb03f9fa6863a287778537a6e186d27df"
+    },
+    {
+      "id": "component",
+      "title": "Component",
+      "titleKey": "device_component",
+      "group": "port",
+      "repository": "https://github.com/Templarian/MaterialDesign",
+      "revision": "2424e748e0cc63ab7b9c095a099b9fe239b737c0",
+      "license": "Apache-2.0",
+      "upstream": "https://raw.githubusercontent.com/Templarian/MaterialDesign/2424e748e0cc63ab7b9c095a099b9fe239b737c0/svg/video-input-component.svg",
+      "sha256": "3ccf1ed448d5fc14fecf5aabe680593a18515206f73ec137c0f8440fdc554943"
+    },
+    {
+      "id": "scart",
+      "title": "SCART",
+      "group": "port",
+      "repository": "https://github.com/Templarian/MaterialDesign",
+      "revision": "2424e748e0cc63ab7b9c095a099b9fe239b737c0",
+      "license": "Apache-2.0",
+      "upstream": "https://raw.githubusercontent.com/Templarian/MaterialDesign/2424e748e0cc63ab7b9c095a099b9fe239b737c0/svg/video-input-scart.svg",
+      "sha256": "c78edc77d975da4d8ff0837aa333106bb3d8a25bf79e2f2fcb87641ab833edf5"
     }
   ],
   "rendering": {
@@ -1383,6 +1425,62 @@
         "pngSize": [
           104,
           104
+        ]
+      },
+      {
+        "id": "usb",
+        "sourceBounds": [
+          35,
+          35,
+          442,
+          442
+        ],
+        "opticalEdge": 104,
+        "pngSize": [
+          104,
+          104
+        ]
+      },
+      {
+        "id": "av",
+        "sourceBounds": [
+          35,
+          35,
+          442,
+          442
+        ],
+        "opticalEdge": 104,
+        "pngSize": [
+          104,
+          104
+        ]
+      },
+      {
+        "id": "component",
+        "sourceBounds": [
+          35,
+          35,
+          442,
+          442
+        ],
+        "opticalEdge": 104,
+        "pngSize": [
+          104,
+          104
+        ]
+      },
+      {
+        "id": "scart",
+        "sourceBounds": [
+          55,
+          59,
+          404,
+          378
+        ],
+        "opticalEdge": 104,
+        "pngSize": [
+          104,
+          97
         ]
       }
     ]

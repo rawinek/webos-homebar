@@ -9,9 +9,10 @@ ROOT=Path(__file__).resolve().parents[1]
 s=importlib.util.spec_from_file_location('render',ROOT/'tools/render-panel.py');rp=importlib.util.module_from_spec(s);s.loader.exec_module(rp)
 app=QGuiApplication([])
 manifest=json.loads((ROOT/'ui/input-icons/manifest.json').read_text())
-assert len(manifest['icons'])==65
+assert len(manifest['icons'])==69
 assert sum(x.get('group')=='device' for x in manifest['icons'])==12
 assert sum(x.get('group')=='tv' for x in manifest['icons'])==4
+assert sum(x.get('group')=='port' for x in manifest['icons'])==4
 for icon in manifest['icons']:
  original=ROOT/'ui/input-icons'/(icon['id']+'.svg');png=QImage(str(original.with_suffix('.png')))
  assert hashlib.sha256(original.read_bytes()).hexdigest()==icon['sha256']

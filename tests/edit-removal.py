@@ -30,9 +30,9 @@ for width,height in [(1920,1080),(1280,720)]:
   def state():return js('({f:shell.favouriteKeys,s:shell.sources.map(function(x){return x.id;}),a:shell.homeActions.map(function(x){return x.action;})})')
   # Close background apps is off until the user turns it on.
   root.scene(json.dumps(dict(page='home',favs=[],inputs=rp.inputs(rp.INPUTS),settings={'lang':'pl','motion':False})));rp.wait(100)
-  assert js('shell.homeActions.map(function(x){return x.action;})')==['apps','system']
+  assert js('shell.homeActions.map(function(x){return x.action;})')==['apps','inputs','system']
   root.scene(json.dumps(dict(page='home',favs=[],inputs=rp.inputs(rp.INPUTS),settings={'lang':'pl','motion':False,'homeCloseApps':True})));rp.wait(100)
-  assert js('shell.homeActions.map(function(x){return x.action;})')==['closeApps','apps','system']
+  assert js('shell.homeActions.map(function(x){return x.action;})')==['closeApps','apps','inputs','system']
   for kind,index in [('fav',0),('fav',6),('source',0),('source',1),('action',0),('action',1)]:
    scene(kind,index,size='larger');before=state();key(Qt.Key_Down)
    assert state()==before and js('shell.pendingRemoval')
@@ -53,7 +53,7 @@ for width,height in [(1920,1080),(1280,720)]:
   assert js('shell.editInputIcon') and not js('shell.pendingRemoval')
   key(Qt.Key_Down);assert not js('shell.editInputIcon') and not js('shell.pendingRemoval') and state()==before
   # System never offers deletion; shortcuts have exactly LEFT/RIGHT above them.
-  scene('action',2);before=state();key(Qt.Key_Down);key(Qt.Key_Down)
+  scene('action',3);before=state();key(Qt.Key_Down);key(Qt.Key_Down)
   assert state()==before and not js('shell.pendingRemoval') and not js('shell.editInputIcon')
   row=named(root,'shortcutEditControls');assert row is not None and row.isVisible()
   assert row.mapToScene(QPointF(0,row.height())).y()<row.parentItem().parentItem().mapToScene(QPointF(0,0)).y()

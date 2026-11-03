@@ -1,6 +1,25 @@
 .pragma library
 // Stable ids are saved per physical input, never inferred from a CEC name.
 var catalog = [
+    // The ports' own symbols: the default of USB drives and the analogue inputs.
+    {
+        "id": "usb",
+        "title": "USB drive",
+        "titleKey": "device_usb"
+    },
+    {
+        "id": "av",
+        "title": "AV"
+    },
+    {
+        "id": "component",
+        "title": "Component",
+        "titleKey": "device_component"
+    },
+    {
+        "id": "scart",
+        "title": "SCART"
+    },
     {
         "id": "amplifier",
         "title": "Amplifier",

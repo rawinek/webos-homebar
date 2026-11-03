@@ -31,5 +31,7 @@ The HDMI catalogue also includes 12 generic Material Design device symbols
 (soundbar, AV receiver, amplifier, projector, console, decoder, monitor, disc
 player, speaker, speakers, streamer and satellite receiver). These entries have
 `group: device`, translated names and Apache 2.0 provenance in the manifest.
+Four port symbols from the same revision (`group: port`: USB drive, AV,
+Component, SCART) are the default icons of those sources.
 The HDMI picker sorts translated names alphabetically; assignments keep stable
 ids, so adding or sorting entries never changes a saved device choice.

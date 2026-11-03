@@ -54,7 +54,7 @@ stays visible above it. One row, from the left:
   CEC, a missing CEC name to the label, and finally to the port name.
   Existing text arrangements stay available and remain the default (see
   [Hiding apps and inputs](#hiding-apps-and-inputs)).
-- **Shortcuts** after the inputs: *Apps* and *System*; *Close background apps*
+- **Shortcuts** after the inputs: *Apps*, *Inputs* and *System*; *Close background apps*
   is off by default (turn it on in *Launcher settings → Shortcuts*) and sits
   first when on. *Memory freeing action* chooses between closing apps
   immediately (`closeAllApps`) and opening LG's Memory Optimizer.
@@ -64,8 +64,8 @@ stays visible above it. One row, from the left:
   A shortcut is edited like a
   favourite: hold OK (or press YELLOW) on it, then ← → move it among the
   shortcuts and ▼ twice takes it off the row; *System* can be moved as well, but
-  never removed, and *Shortcuts* in the Launcher settings brings the other
-  two back. A dot on *System* means a new version of the launcher is there
+  never removed, and *Shortcuts* in the Launcher settings brings the others
+  back. A dot on *System* means a new version of the launcher is there
   (see [Updates](#launcher-settings)).
 
 <img src="screenshots/home-input.jpg" width="100%" alt="An HDMI input focused: its name above the row, the device under each input, the hints for OK, hold OK and RED at the bottom">
@@ -126,6 +126,7 @@ shows the hidden apps again, dimmed, so RED on one can bring it back for
 good. *TV* and the inputs are taken off the Home row with ▼ twice in their edit
 mode (hold OK on one, then press ▼ twice) and come back from *Launcher settings → Home
 row → Inputs and TV*: a box for *TV* and each input, and OK switches the chosen one.
+The *Inputs* page does the same with hold OK or YELLOW, and lists USB drives too.
 Nothing is uninstalled; hidden items are only out of the launcher's lists.
 
 ## Apps
@@ -138,6 +139,17 @@ settings → Apps order* puts them in the TV's
 order, from A to Z, or the most used first, counted from the launcher's own
 launches. An app's glow colour lights the bottom-left corner while it is
 focused: the colour the build knows for it, else one read from its icon.
+
+## Inputs
+
+Every source the TV has, as pills like on the Home row: *TV*, the HDMI inputs
+(and DisplayPort or USB-C where a set has them), the AV, Component and SCART
+inputs of a set that lists them, and the USB drives plugged in now. A dot
+marks the ones on the Home row. **OK** opens one (a USB drive opens in LG's
+media player, on that drive); **hold OK** or **YELLOW** puts it on the Home row
+or takes it off. The HDMI inputs are on the row until taken off; *TV*, USB
+drives and the analogue inputs only once put on it. *Launcher settings → Home
+row → Inputs and TV* switches the same list.
 
 ## System
 
@@ -185,11 +197,11 @@ at *Larger* and the 12-hour clock:
 | | Theme | Default or one of eight two-colour themes, see [Themes](themes.md) |
 | | Text size | Normal, Large or Larger: the names, hints, labels and the menu grow; the tiles and pills keep their size, so the row still fits |
 | | Animations | On or off |
-| Home row | Inputs and TV | A box for *TV* and each input the TV has, in their row order: OK takes the chosen one off the Home row or puts it back |
+| Home row | Inputs and TV | A box for *TV*, each input the TV has and each USB drive plugged in, in their row order: OK takes the chosen one off the Home row or puts it back. HDMI is on the row by default, the rest is off |
 | | Input appearance | *Icon only*, *Icon + HDMI*, *Icon + label*, *Icon + CEC*, or the existing text arrangements: *Label only*, *HDMI only*, *CEC only*, *Label, then HDMI*, *HDMI, then label*, and the same pairs for the device's HDMI-CEC name (*CEC, then HDMI*, *HDMI, then CEC*): what a pill shows of the port, the name set on the TV for that input and the CEC name. The label modes fall back to the CEC name when no label is set, and the other way round. A pill drawn with the choice appears below the values. Missing label/CEC names fall back as before. Icons are chosen per input in its edit mode |
 | | Input name above favourites | HDMI (default), Label or CEC; independent of the tile appearance, with the same fallback for missing names |
 | | Long input names | *Ellipsis* (default) or *Scroll*: a name wider than the 200 px a pill can take either ends in "…", or, while that tile is focused, scrolls slowly to its end and back |
-| | Shortcuts | A box for *Free up memory* (off by default) and for the *Apps* shortcut: the same, for the tiles after the inputs |
+| | Shortcuts | A box for *Free up memory* (off by default) and for the *Apps* and *Inputs* shortcuts: the same, for the tiles after the inputs |
 | | Memory freeing action | *Close background apps* (default) or *Open LG Memory Optimizer*. The first closes apps immediately; the second opens LG's optimiser screen and leaves *Start* to you. The shortcut's title follows the chosen action. The optimiser option is offered only when the TV's LG Settings includes that screen |
 | | After holding BACK | Compatibility overlay and System HOME: the last input, TV, any physical input (including hidden ones), or *Do nothing* (Homebar leaves the TV to LG). In System HOME this applies when an app leaves no full-screen card; ordinary HOME over a playing app does not switch inputs. Additional overlay and the older Home panel leave returns to LG |
 | Apps | Apps order | The TV's order, A to Z, or the most used first |
@@ -221,7 +233,8 @@ Android TV, Fire TV, Roku, Dune HD, Zidoo, Blu-ray/DVD, Raspberry Pi, Intel NUC,
 Sonos, Denon, Yamaha and Cambridge Audio, plus ASUS, Bose, Google, Kodi, LG,
 Onkyo, Panasonic, Samsung, Sony, Steam, Xiaomi and XGIMI. Generic symbols include
 a soundbar, AV receiver, amplifier, projector, console, decoder, monitor, disc
-player, speaker, speakers, streamer, satellite receiver and HDMI. They are
+player, speaker, speakers, streamer, satellite receiver and HDMI. USB drives and
+the AV, Component and SCART inputs get their own port symbol by default. They are
 selected manually; Homebar does not guess from device names or change TV settings.
 The icons work offline and follow the theme's text colour. Four additional TV
 symbols are restricted to the Live TV tile. All icon fields are 48 × 48 px,

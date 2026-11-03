@@ -25,6 +25,7 @@
     }
     function loadInputs() {
         http("/inputs", function(r) { setInputs(r.devices ? inputsFrom(r.devices) : []); });
+        http("/usb", function(r) { setUsb(r.devices ? usbFrom(r.devices) : []); });
     }
     QtObject {
         id: launchService
