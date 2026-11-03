@@ -19,7 +19,8 @@
 
 Homebar is a home screen for rooted LG webOS TVs. Press HOME and a bar comes
 up at the bottom of the screen, over whatever is playing: your favourite apps,
-the TV's inputs with the device on each, all your apps and a System page.
+the TV's inputs with the device on each, all your apps, every input and USB
+drive, and a System page.
 The picture stays where it is. Press HOME again, or BACK, and it is gone.
 
 ## Highlights
@@ -56,6 +57,10 @@ The picture stays where it is. Press HOME again, or BACK, and it is gone.
 - **Device icons** for inputs and TV: choose a brand or a generic device,
   such as a soundbar, console or projector. Show an icon alone or with text;
   choose the input heading separately. [How to edit them](docs/using.md#device-icons).
+- **Inputs page**: every source the TV has, Live TV, the analogue inputs of
+  sets that have them and the USB drives plugged in, with hold OK to put one on
+  the Home row or take it off. A USB drive opens in LG's media player.
+  [Inputs](docs/using.md#inputs).
 - **Safer editing**: a red warning appears before a second DOWN press removes
   a favourite, input or optional shortcut from the Home row.
 - **Ten languages**, the TV's own by default: English, Spanish, German,

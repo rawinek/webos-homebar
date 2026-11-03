@@ -135,6 +135,8 @@ sh /var/lib/webosbrew/rawin-launcher-home/uninstall.sh   # overlay
 ```
 
 LG's Home and the HOME button are given back at once; nothing needs a reboot.
+If a step fails (LG's Home cannot be given back, or the app cannot be removed),
+the uninstaller stops with an error and keeps what it needs to be run again.
 What the uninstaller removes is listed in
 [How it works → What it changes on the TV](how-it-works.md#what-it-changes-on-the-tv).
 

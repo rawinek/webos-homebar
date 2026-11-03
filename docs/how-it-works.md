@@ -153,7 +153,8 @@ hang from the bottom and the right edge, so a wider screen gets a longer
 rail and more columns in *Apps*. The Home rail gives the input pills what is
 left after the favourites and the two doors, and cuts the device names under
 *HDMI n* to that, so the rail never runs past the right margin; the TV's
-inputs come from the TV, as many as it has.
+inputs come from the TV, as many as it has (eim `getAllInputStatus`), and the
+USB drives from its attached storage manager (`listDevices`).
 
 Opening Home is kept cheap on a TV's GPU: the app and input lists are read
 again each time but only replace the old ones when they changed, so the tiles
@@ -203,10 +204,11 @@ the panel asks for nothing.
 ## What the launcher keeps
 
 Everything the launcher remembers is in its LocalStorage database
-(`rawinLauncher`): `favourites` (app ids), `settings`, `hidden` and
-`hiddenInputs` (ids hidden with RED), `usage` (how often each app was opened
-from here, for the "most used" order) and `colors` (the glow colours read
-from icons). *Back up* writes the first five to `backup.json` next to the
+(`rawinLauncher`): `favourites` (app ids), `settings`, `hidden` (apps hidden
+with RED), `hiddenInputs` (inputs taken off the Home row) and `shownInputs`
+(USB drives and analogue inputs put on it; Live TV is the setting `tv`), `usage` (how often
+each app was opened from here, for the "most used" order) and `colors` (the
+glow colours read from icons). *Back up* writes all but the colours to `backup.json` next to the
 installed launcher: with the Home panel through the Homebrew Channel's
 `exec` (the JSON in a `printf`), with the overlay through the helper
 (`POST /backup`, `GET /restore`).

@@ -120,8 +120,8 @@ pills, one with DisplayPort or USB-C shows those too.
 
 | TV | webOS (LG's name) | Firmware | Method | Last tested with |
 | :--- | :--- | :--- | :--- | :--- |
-| LG OLED55C9PLA (C9, 2019) | 4.10.2 (webOS 4.5) | 05.50.00 | Home panel | 0.19.2 |
-| LG OLED77B46LA (B4, 2024) | 10.3.1 (webOS 25) | 33.31.68 | System HOME (native) and additional overlay | 0.19.6 |
+| LG OLED55C9PLA (C9, 2019) | 4.10.2 (webOS 4.5) | 05.50.00 | Home panel | 0.19.7 |
+| LG OLED77B46LA (B4, 2024) | 10.3.1 (webOS 25) | 33.31.68 | System HOME (native) and additional overlay | 0.19.7 |
 | LG OLED65G56LS (G5, 2025) | 11.2.0 (webOS 26) | 43.21.77 | System HOME (native) | 0.19.6 (test build), by a user |
 | LG 43UR78006LK (UR78, 2023, updated to webOS 25) | 10.3.2 (webOS 25) | 33.31.75 | Overlay, LG's Home kept (`--keep-lg-home`) | 0.14.0, by a user |
 | LG 43UM7100PLB (UM71, 2019) | 4.10.2 (webOS 4.5) | 05.40.97 | Home panel, with the TV's Home screen on *Basic* | 0.14.1, by a user |
@@ -133,7 +133,7 @@ pills, one with DisplayPort or USB-C shows those too.
 | LG OLED55C16LA (C1, 2021) | 6.3.2 (webOS 6.0) | 03.34.80 | Overlay, LG's Home kept | 0.14.0, by a user |
 | LG 43UP78006LB (UP78, 2021) | 6.5.3 (webOS 6.0) | 03.53.45 | Overlay, LG's Home kept | 0.15.1, by a user |
 | LG OLED65C11LB (C1, 2021) | 6.5.3 (webOS 6.0) | 03.53.45 | System HOME (trial, `--try-native-home`) | 0.19.2-rc4, by a user |
-| LG OLED48C14LB (C1, 2021) | 6.5.3 (webOS 6.0) | 03.53.45 | System HOME | 0.19.7-rc1, by a user |
+| LG OLED48C14LB (C1, 2021) | 6.5.3 (webOS 6.0) | 03.53.45 | System HOME | 0.19.7-rc1 (test build), by a user |
 | A 2022 LG TV (family HE_DTV_C22P) | 7.5.8 (webOS 22) | 04.56.35 | Overlay, LG's Home kept | 0.16.0, by a user |
 
 ## Trying an untested webOS
