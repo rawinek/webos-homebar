@@ -68,7 +68,7 @@ app:
   library into the input processes as it loads, once per boot), so HOME
   reaches the launcher a few seconds after the hooks begin (42 s after
   power-on on the tested B4). A HOME before then opens LG's Home once (see
-  [Troubleshooting](troubleshooting.md#home-right-after-a-boot-opens-lgs-home-overlay)).
+  [Troubleshooting](troubleshooting.md#home-right-after-a-boot-opens-lgs-home)).
   The boot hook and the stand-in note each step in
   `/tmp/rawin-launcher-boot.log` with the seconds since boot.
 - `org.rawin.launcher.service`: a Node service in the same package, given root

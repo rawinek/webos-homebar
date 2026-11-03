@@ -10,8 +10,8 @@ HOME_ID=com.webos.app.home
 DB=9969c85c6e1c20a73a4ac456d46e31f7
 STORE=/home/root/.local/share
 luna() { luna-send -n 1 "luna://com.webos.applicationManager/$1" "$2" </dev/null; }
-# webOS 10/11, or 6 to 9 where the owner started the trial (install.sh --try-native-home).
-native_ok() { grep -qE 'release (10|11)\.' /etc/starfish-release || { [ -f "$BASE/native-trial" ] && grep -qE 'release (6|7|8|9)\.' /etc/starfish-release; }; }
+# webOS 6, 10 and 11, or 7 to 9 where the owner started the trial (install.sh --try-native-home).
+native_ok() { grep -qE 'release (6|10|11)\.' /etc/starfish-release || { [ -f "$BASE/native-trial" ] && grep -qE 'release (7|8|9)\.' /etc/starfish-release; }; }
 stop_panels() {
     mode=${1:-all}
     # Directory identity alone misses another launcher's nested/binary mount.
@@ -57,8 +57,10 @@ case "${1:-status}" in
   check-owner) node "$INTEGRATION" check ;;
   enable) exec sh "$BASE/mode-switch.sh" native ;;
   activate)
-    native_ok || { echo 'Native Home currently supports webOS 10/11 only' >&2; exit 1; }
+    native_ok || { echo 'Native Home supports webOS 6, 10 and 11 (7 to 9: a trial)' >&2; exit 1; }
     [ ! -f "$BASE/keep-lg-home" ] || { echo 'Disable keep-lg-home before enabling native Home' >&2; exit 1; }
+    # Outside webOS 10/11 (webOS 6 included) the start is checked and logged
+    # as in the trial: LG Home comes back at once if Homebar does not come up.
     trial=
     grep -qE 'release (10|11)\.' /etc/starfish-release || trial=1
     [ -z "$trial" ] || sh "$BASE/native-trial.sh" begin

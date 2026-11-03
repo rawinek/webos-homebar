@@ -14,7 +14,7 @@ ways. The installer picks by what the TV has, not by its version number:
 | Method | What it is | Needs | Where it fits |
 | :--- | :--- | :--- | :--- |
 | **Home panel** | The panel is loaded *inside* LG's Home, a QML app (webOS 4 and 5: the ribbon Home, e.g. LG C9); LG's HOME handling, window and lifecycle are kept | Root | webOS 3 to 5, where the patch fits |
-| **System HOME (native)** | Homebar replaces LG's Home. On webOS 9 to 11 LG's Home is a Flutter app; Homebar's own QML host (run by the system's `qml-runner`, with a native lifecycle) is mounted under LG Home's id (`com.webos.app.home`), so HOME, BACK out of an app and waking all open it. LG's files stay underneath, and the mount ends with a reboot (a boot hook applies it again) | Root; no Input Hook, no mapper | webOS 10 and 11 (tested on 10.3 and 11.2); webOS 6 to 9 as a trial (works on an LG C1 with 6.5.3) |
+| **System HOME (native)** | Homebar replaces LG's Home. On webOS 9 to 11 LG's Home is a Flutter app; Homebar's own QML host (run by the system's `qml-runner`, with a native lifecycle) is mounted under LG Home's id (`com.webos.app.home`), so HOME, BACK out of an app and waking all open it. LG's files stay underneath, and the mount ends with a reboot (a boot hook applies it again) | Root; no Input Hook, no mapper | webOS 10 and 11 (tested on 10.3 and 11.2) and, by choice, webOS 6 (tested on 6.5.3); webOS 7 to 9 as a trial |
 | **Additional overlay** | A separate overlay app plus a root helper; LG Home (or Luma, Glasshouse) keeps HOME. Homebar opens from its app tile or from a button set in Input Hook or Magic Mapper (*Launcher settings → Help → Remote button* does it) | The tile: nothing; a button: Input Hook or Magic Mapper; node 8 or newer | webOS 6 or newer (checked on 10) |
 
 The overlay can also bind HOME itself through Input Hook (*HOME via mapper*;
@@ -54,7 +54,7 @@ name next to it.
 | 3.x | webOS 3.0, 3.5 | 2016–2017 | QML | Home panel, if the patch fits | Untested |
 | 4.x | webOS 4.0, 4.5 | 2018–2019 | QML | Home panel | **Tested on 4.10** (webOS 4.5: LG C9, and UM71, B9 and E9 by users) |
 | 5.x | webOS 5.0 | 2020 | QML, the same kind of ribbon as 4.x | Home panel (the patch fits; else the overlay) | **Tested on 5.6** (LG NANO80, UN73 and UN90, by users) |
-| 6.x | webOS 6.0 | 2021 | QML, a new full-screen Home | Overlay, HOME via Input Hook; LG's Home kept unless `--replace-lg-home`. System HOME: `--try-native-home` trial. The Home panel in LG's full-screen Home: `--home-panel`, experimental (no picture behind it: that Home covers the app) | **Tested on 6.3 and 6.5** (LG C1 and UP78, by users); System HOME **works on a C1 with 6.5.3** (by a user) |
+| 6.x | webOS 6.0 | 2021 | QML, a new full-screen Home | Overlay, HOME via Input Hook; LG's Home kept unless `--replace-lg-home`. System HOME by choice (`--native-home` or *Launch method*). The Home panel in LG's full-screen Home: `--home-panel`, experimental (no picture behind it: that Home covers the app) | **Tested on 6.3 and 6.5** (LG C1 and UP78, by users); System HOME **works on a C1 with 6.5.3** (by a user) |
 | 7.x | webOS 22 | 2022 | QML, as far as known; the full-screen Home | Overlay, HOME via Input Hook; LG's Home kept unless `--replace-lg-home` | Overlay **tested on 7.5** (a 2022 TV, by a user); System HOME: `--try-native-home` trial, untested |
 | 8.x | webOS 23 | 2023 | QML, as far as known; the full-screen Home | Most likely the overlay, as on 6.x | Untested; System HOME: `--try-native-home` trial |
 | 9.x | webOS 24 | 2024 | Flutter, like 10.x | Overlay, HOME via Input Hook; LG's Home kept unless `--replace-lg-home`. System HOME is the most likely next one to work: Glasshouse and Luma replace LG's Home on it | Untested; System HOME: `--try-native-home` trial |
@@ -79,9 +79,10 @@ What the untested rows rest on:
   (11 experimentally) and [Luma](https://github.com/ecklf/lg-luma) lists
   takeover on 5, 6, 10 and 11 and fails on 4. On webOS 5 and 6 the app manager
   cannot reread a mounted Home manifest, so Luma replaces LG Home's program
-  instead; Homebar's trial does the same on webOS 6, with a script that runs the
-  system's `qml-runner` on Homebar's host (it worked on an LG C1, webOS 6.5.3).
-  Hence the gate on 10/11 and the opt-in trial on 6 to 9. On webOS 11 the app
+  instead; Homebar does the same on webOS 6, with a script that runs the
+  system's `qml-runner` on Homebar's host (tested on LG C1s, webOS 6.5.3).
+  Hence System HOME is the default on 10/11, a choice on 6 and an opt-in trial
+  on 7 to 9. On webOS 11 the app
   manager refuses that block unless it carries `forceBlockSystemApp` (its schema
   lists the field), which Homebar sends there since 0.19.5.
 
@@ -132,6 +133,7 @@ pills, one with DisplayPort or USB-C shows those too.
 | LG OLED55C16LA (C1, 2021) | 6.3.2 (webOS 6.0) | 03.34.80 | Overlay, LG's Home kept | 0.14.0, by a user |
 | LG 43UP78006LB (UP78, 2021) | 6.5.3 (webOS 6.0) | 03.53.45 | Overlay, LG's Home kept | 0.15.1, by a user |
 | LG OLED65C11LB (C1, 2021) | 6.5.3 (webOS 6.0) | 03.53.45 | System HOME (trial, `--try-native-home`) | 0.19.2-rc4, by a user |
+| LG OLED48C14LB (C1, 2021) | 6.5.3 (webOS 6.0) | 03.53.45 | System HOME | 0.19.7-rc1, by a user |
 | A 2022 LG TV (family HE_DTV_C22P) | 7.5.8 (webOS 22) | 04.56.35 | Overlay, LG's Home kept | 0.16.0, by a user |
 
 ## Trying an untested webOS
@@ -139,10 +141,10 @@ pills, one with DisplayPort or USB-C shows those too.
 `sh install.sh` on an untested webOS says so and goes on with the method that
 fits; `--probe` first shows what it would do. Two more things help:
 
-- **webOS 6, 7, 8 or 9:** `sh install.sh --try-native-home` tries System HOME. It
+- **webOS 7, 8 or 9:** `sh install.sh --try-native-home` tries System HOME (on webOS 6 it is a regular choice, `--native-home`). It
   checks within 25 seconds that the app manager runs Homebar's Home and gives
   LG's Home back at once if not; it writes `/tmp/homebar-native-trial.txt`
-  ([details](install.md#trying-system-home-on-webos-6-to-9)).
+  ([details](install.md#system-home-on-webos-6-to-9)).
 - **Any other TV:** the file from `diagnose.sh` (see
   [Troubleshooting](troubleshooting.md#diagnose)).
 

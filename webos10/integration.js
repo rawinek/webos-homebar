@@ -139,8 +139,13 @@ Integration.prototype.inspect = function() {
         if (blocking) blockers.push(item);
     }
     var release=this.read('/etc/starfish-release');
-    var trial=release.state === 'read' && /release (6|7|8|9)\./.test(release.text) && this.fs.existsSync(BASE+'/native-trial');
-    var nativeSupported=release.state === 'read' && (/release (10|11)\./.test(release.text) || trial) && this.fs.existsSync('/usr/bin/qml-runner');
+    // System HOME: the default on webOS 10/11, a choice on webOS 6 (tested on
+    // an LG C1, issue #17), a trial on 7 to 9 once install.sh --try-native-home
+    // left its marker.
+    var trial=release.state === 'read' && /release (7|8|9)\./.test(release.text) && this.fs.existsSync(BASE+'/native-trial');
+    var qml=this.fs.existsSync('/usr/bin/qml-runner');
+    var nativeDefault=release.state === 'read' && /release (10|11)\./.test(release.text) && qml;
+    var nativeSupported=release.state === 'read' && (/release (6|10|11)\./.test(release.text) || trial) && qml;
     var current=this.fs.existsSync(BASE+'/native-home') ? 'native' : this.fs.existsSync(BASE+'/additional-overlay') ? 'overlay' : 'legacy';
     var ownership=this.ownership(), owner=ownership.owner, homeMounts=ownership.homeMounts, glass=ownership.glass;
     if (owner === 'other') issue('launch_home_other','',true);
@@ -214,10 +219,10 @@ Integration.prototype.inspect = function() {
     if (result.state==='read' && result.value.restoreSkipped) { restoreSkipped=true; issue('launch_restore_skipped','',false); }
     var fingerprint=crypto.createHash('sha256').update(JSON.stringify([current,owner,homeMounts,glass.text || glass.state,signatures,
         ih.state,mmInstalled,processUnknown])).digest('hex');
-    return {nativeSupported:nativeSupported,trial:trial,current:current,owner:owner,issues:issues,blockers:blockers,cleanup:cleanup,mapped:mapped,
+    return {nativeSupported:nativeSupported,nativeDefault:nativeDefault,trial:trial,current:current,owner:owner,issues:issues,blockers:blockers,cleanup:cleanup,mapped:mapped,
         legacyMagicReady:files.some(function(f) {return f.kind==='magic' && (f.active || f.reloadable) && f.changes.some(function(c) {return c.key==='home';});}),
         homeMapped:homeOwn,companionMapped:companionMapped,magicInstalled:mmInstalled,inputInstalled:inputInstalled,restoreSkipped:restoreSkipped,
-        migrationAvailable:current==='legacy' && nativeSupported && blockers.length===0,fingerprint:fingerprint,files:files};
+        migrationAvailable:current==='legacy' && nativeDefault && blockers.length===0,fingerprint:fingerprint,files:files};
 };
 Integration.prototype.publicReport = function(report) {
     var out={}; Object.keys(report).forEach(function(k) { if(k!=='files')out[k]=report[k]; }); return out;
@@ -486,7 +491,7 @@ if(require.main===module) {
         else if(cmd==='rollback')integration.rollback(process.argv[3]);
         else if(cmd==='select') {
             var r=integration.inspect();
-            console.log(r.blockers.length ? 'overlay' : r.nativeSupported ? 'native' : (r.homeMapped && (r.inputInstalled || r.legacyMagicReady)) ? 'mapped' : (r.magicInstalled || r.cleanup) ? 'overlay' : 'legacy');
+            console.log(r.blockers.length ? 'overlay' : r.nativeDefault ? 'native' : (r.homeMapped && (r.inputInstalled || r.legacyMagicReady)) ? 'mapped' : (r.magicInstalled || r.cleanup) ? 'overlay' : 'legacy');
         } else throw error('launch_unknown');
     } catch(e) {console.error((e.code || 'launch_unknown')+': '+(messages[e.code] || 'Launch configuration could not be changed safely. Inspect Diagnose.'));process.exit(1);}
 }

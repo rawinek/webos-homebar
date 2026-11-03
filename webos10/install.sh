@@ -66,8 +66,8 @@ if [ -n "$NATIVE_HOME" ]; then
     if [ -n "$TRY" ]; then
         grep -qE 'release (6|7|8|9)\.' /etc/starfish-release || fail "--try-native-home is for webOS 6 to 9; on 10/11 use --native-home"
         mkdir -p "$BASE"; touch "$BASE/native-trial"
-    elif ! { grep -qE 'release (10|11)\.' /etc/starfish-release || [ -f "$BASE/native-trial" ]; }; then
-        fail "--native-home currently supports webOS 10/11 only (webOS 6 to 9: --try-native-home, experimental)"
+    elif ! { grep -qE 'release (6|10|11)\.' /etc/starfish-release || [ -f "$BASE/native-trial" ]; }; then
+        fail "--native-home supports webOS 6, 10 and 11 (webOS 7 to 9: --try-native-home, experimental)"
     fi
 elif [ -z "$ADDITIONAL_OVERLAY" ]; then
     if [ -f "$HERE/integration.js" ] && node "$HERE/integration.js" legacy-mapper >/dev/null 2>&1; then MANUAL_MAPPER=magic; fi

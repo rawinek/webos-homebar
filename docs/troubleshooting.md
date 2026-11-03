@@ -3,7 +3,7 @@
 - [Diagnose](#diagnose)
 - [HOME does nothing (System HOME)](#home-does-nothing-system-home)
 - [HOME does nothing (overlay)](#home-does-nothing-overlay)
-- [HOME right after a boot opens LG's Home (overlay)](#home-right-after-a-boot-opens-lgs-home-overlay)
+- [HOME right after a boot opens LG's Home](#home-right-after-a-boot-opens-lgs-home)
 - [An update fails](#an-update-fails)
 - [An untested webOS](#an-untested-webos)
 - [Getting LG's Home back](#getting-lgs-home-back)
@@ -95,7 +95,7 @@ nothing, run the installer again from a terminal with
 the code from Input Hook's log (`/tmp/lginput-hook-*.log`) after a press and
 give it with `--home-key=CODE`.
 
-## HOME right after a boot opens LG's Home (overlay)
+## HOME right after a boot opens LG's Home
 
 The Homebrew Channel runs its boot hooks some 35 s into a boot, and
 nothing of the launcher's runs before them. The launcher's hook is named to
@@ -107,6 +107,13 @@ opens LG's Home once; it is stopped when the stand-in takes its place a
 moment later, and the TV goes back to the input. A TV woken from standby
 does not boot, so this is only seen after a power cut, a `reboot` or a
 firmware update. The boot log in `diagnose.sh` shows when each step ran.
+
+System HOME is the same: Homebar takes LG Home's place from its boot hook, so
+until a few seconds after the hooks begin, HOME opens LG's Home. On webOS 10
+and 11 that can be close to a minute after a power cut, since the app manager
+has to be up before it reads Homebar in; on webOS 6 Homebar replaces the Home
+program once its helper has started. From then on HOME opens Homebar, also
+after standby.
 
 ## No weather in the chip
 

@@ -34,9 +34,10 @@ the makings for.
 that webOS version (`HOMEBAR_WEBOS=9.1 sh install.sh --probe` shows what the
 installer would do on a webOS 9 TV with this TV's makings). The variant is
 still chosen by what the TV has; the version only decides what counts as
-tested and whether the overlay replaces LG's Home by default. On webOS 6 to 9
-it does not enable System HOME; that is `--try-native-home` (see
-[Install](install.md#trying-system-home-on-webos-6-to-9)).
+tested and whether the overlay replaces LG's Home by default. On webOS 6
+System HOME is a choice (`--native-home`), on 7 to 9 the `--try-native-home`
+trial (see
+[Install](install.md#system-home-on-webos-6-to-9)).
 
 ## Configuration
 

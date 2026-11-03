@@ -63,10 +63,12 @@ check(f=>{f.put('/tmp/inputhook','');f.setProcesses([['sh','-c','touch /tmp/inpu
 check(f=>{f.put('/etc/starfish-release','release 9.2.2');const r=f.integration.inspect();assert(!r.nativeSupported&&!r.trial,'webOS 9 without the trial');});
 check(f=>{f.put('/etc/starfish-release','release 9.2.2');f.put(BASE+'/native-trial','');const r=f.integration.inspect();assert(r.nativeSupported&&r.trial,'webOS 9 with the trial');});
 check(f=>{f.put('/etc/starfish-release','release 7.5.0');f.put(BASE+'/native-trial','');assert(f.integration.inspect().nativeSupported);});
-check(f=>{f.put('/etc/starfish-release','release 6.3.2');assert(!f.integration.inspect().nativeSupported,'webOS 6 without the trial');});
-check(f=>{f.put('/etc/starfish-release','release 6.5.3');f.put(BASE+'/native-trial','');const r=f.integration.inspect();assert(r.nativeSupported&&r.trial,'webOS 6 with the trial');});
+check(f=>{f.put('/etc/starfish-release','release 6.3.2');const r=f.integration.inspect();assert(r.nativeSupported&&!r.trial&&!r.nativeDefault,'webOS 6: a choice without the trial marker, never the default');});
+check(f=>{f.put('/etc/starfish-release','release 6.5.3');f.put(BASE+'/native-trial','');const r=f.integration.inspect();assert(r.nativeSupported&&!r.trial,'webOS 6 with an old trial marker is no trial');});
+check(f=>{f.put('/etc/starfish-release','release 6.5.3');fs.unlinkSync(f.real('/usr/bin/qml-runner'));assert(!f.integration.inspect().nativeSupported,'webOS 6 needs qml-runner');});
 check(f=>{f.put('/etc/starfish-release','release 5.5.0');f.put(BASE+'/native-trial','');assert(!f.integration.inspect().nativeSupported,'webOS 5 stays out');});
 check(f=>{f.put(BASE+'/native-trial','');const r=f.integration.inspect();assert(r.nativeSupported&&!r.trial,'webOS 10 is not a trial');});
+check(f=>{const r=f.integration.inspect();assert(r.nativeDefault,'webOS 10: System HOME is the default');});
 // Settings → Remote button: one extra button, to the running mapper, never over someone else's action.
 const ihLaunch={action:'launch',id:'org.rawin.launcher'};
 const mmScript='VERSION = "1.2.0"\nBUTTONS = {\n    398: "red",\n    399: "green",\n    773: "home",\n}\ndef get_button_map(): magic_mapper_config.json\ndef launch_app(inputs): pass';

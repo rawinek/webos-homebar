@@ -8,7 +8,7 @@ own script; none is run by the installer.
 The overlay puts the black stand-in in LG Home's place with a bind mount at
 every boot. The Homebrew Channel runs the boot hooks some 35 s after
 power-on, and a HOME before that opens LG's own Home once
-([Troubleshooting](troubleshooting.md#home-right-after-a-boot-opens-lgs-home-overlay)).
+([Troubleshooting](troubleshooting.md#home-right-after-a-boot-opens-lgs-home)).
 
 LG updates its built-in apps by installing a higher version of the same id
 outside the firmware, and the app manager takes that copy over the one in
@@ -70,9 +70,9 @@ test TVs:
   System HOME and the additional overlay in both directions, reboots in each
   method, uninstall and a clean install. webOS 11 works on an LG G5 (11.2, by a
   user); other TVs are untested;
-  webOS 6 to 9 have the opt-in trial (`--try-native-home`,
-  [install](install.md#trying-system-home-on-webos-6-to-9)); it worked on an LG C1 with webOS 6.5.3, where
-  it replaces LG Home's program instead of its manifest.
+  webOS 6 has it as a choice (tested on LG C1s with webOS 6.5.3, where it
+  replaces LG Home's program instead of its manifest), webOS 7 to 9 the opt-in
+  trial (`--try-native-home`, [install](install.md#system-home-on-webos-6-to-9)).
 - **It is not a new renderer.** The firmware's QML runner hosts the same panel
   under LG Home's id with lifecycle v2; a shorter HOME path may help startup and
   keeping the process, but not the QML rendering cost. Compare physical HOME,
