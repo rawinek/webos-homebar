@@ -63,6 +63,15 @@ for mode in ['native','overlay']:
   else:assert not t.p(m.HOME).is_symlink()
   count+=1
  finally:t.clean()
+# A step that fails stops the uninstall with an error, nothing removed after it:
+# LG Home that cannot be given back must not be reported as removed.
+t=m.TV('overlay')
+try:
+ t.put(m.BASE+'/takeover.sh','#!/bin/sh\nexit 1\n')
+ r=t.run('uninstall.sh','',False)
+ assert 'removed' not in r.stdout and t.p(m.BASE+'/uninstall.sh').exists() and t.p(m.APP+'/appinfo.json').exists(),(r.stdout,r.stderr)
+ count+=1
+finally:t.clean()
 for target in ['/usr/palm/applications/com.webos.app.home/main.qml','/usr/bin/com.webos.app.home']:
  t=m.TV('native')
  try:

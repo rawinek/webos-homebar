@@ -16,7 +16,11 @@ fi
 if [ -f "$BASE/native-home" ]; then
     sh "$BASE/native-home.sh" release || { echo 'Cannot restore native Home; uninstall stopped' >&2; exit 1; }
 fi
-[ -f "$BASE/takeover.sh" ] && sh "$BASE/takeover.sh" restore >/dev/null 2>&1
+# The stand-in left in LG Home's place with its files gone would leave HOME
+# broken: stop here instead, with everything still there to try again.
+if [ -f "$BASE/takeover.sh" ] && ! sh "$BASE/takeover.sh" restore >/dev/null 2>&1; then
+    echo "Cannot give LG Home back; uninstall stopped. Restart the TV and run it again" >&2; exit 1
+fi
 rm -f /var/lib/webosbrew/init.d/10-rawin-launcher /var/lib/webosbrew/init.d/77-rawin-launcher
 
 # HOME back to LG: drop our key, keep any other bindings.
@@ -24,7 +28,7 @@ if [ ! -f "$BASE/integration.js" ] && [ -f "$KEYS" ]; then
     node -e '
 var fs = require("fs"), f = process.argv[1], k = JSON.parse(fs.readFileSync(f, "utf8"));
 Object.keys(k).forEach(function (code) { var v = k[code]; if (v && (v.id === "org.rawin.launcher" || (typeof v.command === "string" && v.command.indexOf("org.rawin.launcher") >= 0))) delete k[code]; });
-fs.writeFileSync(f, JSON.stringify(k));' "$KEYS"
+fs.writeFileSync(f, JSON.stringify(k));' "$KEYS" || { echo "Cannot remove the HOME binding from Input Hook; uninstall stopped" >&2; exit 1; }
 fi
 
 luna-send -n 1 luna://com.webos.applicationManager/closeByAppId '{"id":"org.rawin.launcher"}' </dev/null >/dev/null 2>&1
@@ -42,7 +46,12 @@ while [ -f "$APPDIR/appinfo.json" ] && [ $n -lt 60 ]; do
     n=$((n + 1)); sleep 1
 done
 kill $PID 2>/dev/null
-[ -f "$APPDIR/appinfo.json" ] || rm -rf "$APPDIR"
+# Still there after a minute: the app installer did not remove it. The
+# launcher's folder stays too, with this script, so it can be run again.
+if [ -f "$APPDIR/appinfo.json" ]; then
+    echo "The Homebar app could not be removed; run this again (or remove it from the TV's app list)" >&2; exit 1
+fi
+rm -rf "$APPDIR"
 rm -rf "$BASE" /var/lib/webosbrew/rawin-launcher-last-input /var/lib/webosbrew/rawin-launcher-settings.json
 # Favourites and settings (the app's LocalStorage).
 rm -rf /home/root/.local/share/org.rawin.launcher

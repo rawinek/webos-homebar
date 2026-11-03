@@ -1,5 +1,6 @@
 """The Inputs page: every source, USB drives and AV off the Home row until put
-on it, hold OK there toggles a source, BACK returns to its shortcut."""
+on it, hold OK there toggles a source, BACK returns to its shortcut; and one
+edit mode at a time on Home."""
 import importlib.util,json,tempfile
 from pathlib import Path
 from PySide6.QtCore import Qt,QUrl,QCoreApplication,QEvent
@@ -42,6 +43,14 @@ with tempfile.TemporaryDirectory() as tmp:
  # BACK goes home onto the Inputs shortcut.
  key(461);rp.wait(300)
  assert js('shell.page')=='home' and js('shell.selected')==js('shell.favSlots+shell.sourceCount+shell.homeActionIndex("inputs")');count+=1
+ # One edit at a time: holding a source while a favourite is edited ends that edit,
+ # so ▼ then hides the source, never the favourite.
+ js('shell.selected=0;shell.secondaryAction()');assert js('shell.editIndex')==0
+ js('shell.selected=shell.favSlots;shell.secondaryAction()')
+ assert js('shell.editIndex')==-1 and js('shell.editSourceIndex')==0;count+=1
+ js('shell.selected=shell.favSlots+shell.sourceCount;shell.secondaryAction()')
+ assert js('shell.editSourceIndex')==-1 and js('shell.editActionIndex')==0;count+=1
+ js('shell.editActionIndex=-1')
  # A saved shortcut order from before the page gets Inputs in front of System.
  assert js('shell.homeActionOrderFor(["system","apps","closeApps"])')==['inputs','system','apps','closeApps'];count+=1
 print('PASS Inputs page:',count,'checks')

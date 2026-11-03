@@ -1152,11 +1152,16 @@ FocusScope {
         if (page === "apps") { if (apps[selected]) toggleFavourite(apps[selected]); }
         else if (page === "inputs") { if (allSources[selected]) toggleHiddenInput(allSources[selected].id); }
         else if (page !== "home") return;
-        else if (selected < favCount) { editIndex = editIndex === selected ? -1 : selected; notice = ""; }
-        else if (selected >= favSlots && selected < favSlots + sourceCount) {
-            editSourceIndex = selected - favSlots; notice = "";
-        } else if (selected >= favSlots + sourceCount && selected < favSlots + sourceCount + homeActions.length) {
-            editActionIndex = selected - favSlots - sourceCount; notice = "";
+        else {
+            // One edit at a time: a hold on another tile (the pointer reaches
+            // any tile while one is being edited) ends the edit before it, so
+            // ▼ never removes a favourite while an input looks edited.
+            var wasFavourite = editIndex;
+            editIndex = -1; editSourceIndex = -1; editActionIndex = -1; editInputIcon = false; notice = "";
+            if (selected < favCount) editIndex = wasFavourite === selected ? -1 : selected;
+            else if (selected >= favSlots && selected < favSlots + sourceCount) editSourceIndex = selected - favSlots;
+            else if (selected >= favSlots + sourceCount && selected < favSlots + sourceCount + homeActions.length)
+                editActionIndex = selected - favSlots - sourceCount;
         }
     }
     // The TV's inputs from eim getAllInputStatus: HDMI, and DisplayPort or

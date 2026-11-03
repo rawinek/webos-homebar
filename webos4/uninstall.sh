@@ -2,8 +2,12 @@
 # rawin-launcher (webOS 4): give LG Home back and remove the launcher.
 BASE=/var/lib/webosbrew/rawin-launcher
 ROOT=/usr/palm/applications/com.webos.app.home/qml
+# A patched file that stays mounted keeps the panel in LG Home: stop before
+# anything is removed, so the uninstall can simply be run again.
 for f in "$ROOT/main.qml" "$ROOT/Controllers/UIController.qml" "$ROOT/UserInterfaceLayer/UIController.qml"; do
-    if grep -qF " $f " /proc/mounts; then umount "$f"; fi
+    if grep -qF " $f " /proc/mounts; then
+        umount "$f" 2>/dev/null || umount -l "$f" || { echo "rawin-launcher: cannot unmount $f; uninstall stopped, nothing removed" >&2; exit 1; }
+    fi
 done
 # Unhide Home's CRIU snapshots, unless another hook still wants them hidden.
 if ! ls /var/lib/webosbrew/init.d/ 2>/dev/null | grep -q home-tuning; then
