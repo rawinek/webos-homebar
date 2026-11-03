@@ -118,6 +118,14 @@ WebOSWindow {
             win.windowProperties["_WEBOS_ACCESS_POLICY_KEYS_BACK"] = "true";
             note("BACK claimed: " + win.windowProperties["_WEBOS_ACCESS_POLICY_KEYS_BACK"]);
         } catch (e) { note("BACK not claimed: " + e); }
+        // A held BACK reaches apps as EXIT: the compositor turns the long press
+        // into that key (StarfishKeyFilter). Unclaimed, the compositor handled
+        // EXIT itself and hid the panel the way BACK did before (issue #18), so
+        // Homebar claims it too and closes on it.
+        try {
+            win.windowProperties["_WEBOS_ACCESS_POLICY_KEYS_EXIT"] = "true";
+            note("EXIT claimed: " + win.windowProperties["_WEBOS_ACCESS_POLICY_KEYS_EXIT"]);
+        } catch (e) { note("EXIT not claimed: " + e); }
         var startup = startupParams();
         preloaded = isPreload(startup);   // ends the binding
         if (preloaded && !isQuiet(startup)) { win.visible = true; mapTimer.start(); }

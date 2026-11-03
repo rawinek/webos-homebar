@@ -1490,8 +1490,12 @@ FocusScope {
     // opened is ignored, in case the opening press is still being released.
     property real foregroundSince: 0
     function isHomeKey(key) { return key === Qt.Key_Super_L; }
+    // EXIT, which webOS sends for a held BACK: it closes the panel from any
+    // page, on its release like BACK.
+    function isExit(key) { return key === WebOS.Key_webOS_Exit; }
     Keys.onPressed: {
         noteActivity();
+        if (isExit(event.key)) { event.accepted = true; return; }
         if (isHomeKey(event.key)) {
             event.accepted = true;
             if (!event.isAutoRepeat && editIndex < 0 && Date.now() - foregroundSince > 600) closeHome("home");
@@ -1550,6 +1554,7 @@ FocusScope {
     // The key a popup answered: its release must not act on the page beneath.
     property int modeKeyHeld: 0
     Keys.onReleased: {
+        if (isExit(event.key)) { event.accepted = true; if (!event.isAutoRepeat && foreground) closeHome("back"); return; }
         if (modeKeyHeld === event.key) { event.accepted = true; if (!event.isAutoRepeat) modeKeyHeld = 0; return; }
         if (isHomeKey(event.key)) { event.accepted = true; return; }
         if (isYellow(event.key)) { event.accepted=true; if (!event.isAutoRepeat) secondaryAction(); return; }
