@@ -47,10 +47,11 @@ stays visible above it. One row, from the left:
   Icons include generic devices such as a soundbar, AV receiver, speakers,
   projector or game console, alongside device and brand marks. The picker is
   sorted alphabetically by the names shown in your selected language.
-  Choose **Icon only**, **Icon + HDMI**, **Icon + label** or **Icon + CEC** under
+  Choose **Icon only**, **Icon + port**, **Icon + label** or **Icon + CEC** under
   *Launcher settings → Home row → Input appearance*. Icon-only inputs are slightly wider (72 × 64 px at FHD); other arrangements keep the fitted width, capped at 200 px.
-  **Input name above favourites** independently chooses **HDMI**, **Label** or
-  **CEC** for the large heading (default: HDMI). A missing label falls back to
+  **Input name above favourites** independently chooses **Port**, **Label** or
+  **CEC** for the large heading (default: Port). The port is the input's own name
+  (`HDMI 2`, `AV 1`, `USB 1`); a USB drive's label is the drive's name. A missing label falls back to
   CEC, a missing CEC name to the label, and finally to the port name.
   Existing text arrangements stay available and remain the default (see
   [Hiding apps and inputs](#hiding-apps-and-inputs)).
@@ -198,8 +199,8 @@ at *Larger* and the 12-hour clock:
 | | Text size | Normal, Large or Larger: the names, hints, labels and the menu grow; the tiles and pills keep their size, so the row still fits |
 | | Animations | On or off |
 | Home row | Inputs and TV | A box for *TV*, each input the TV has and each USB drive plugged in, in their row order: OK takes the chosen one off the Home row or puts it back. HDMI is on the row by default, the rest is off |
-| | Input appearance | *Icon only*, *Icon + HDMI*, *Icon + label*, *Icon + CEC*, or the existing text arrangements: *Label only*, *HDMI only*, *CEC only*, *Label, then HDMI*, *HDMI, then label*, and the same pairs for the device's HDMI-CEC name (*CEC, then HDMI*, *HDMI, then CEC*): what a pill shows of the port, the name set on the TV for that input and the CEC name. The label modes fall back to the CEC name when no label is set, and the other way round. A pill drawn with the choice appears below the values. Missing label/CEC names fall back as before. Icons are chosen per input in its edit mode |
-| | Input name above favourites | HDMI (default), Label or CEC; independent of the tile appearance, with the same fallback for missing names |
+| | Input appearance | *Icon only*, *Icon + port*, *Icon + label*, *Icon + CEC*, or the existing text arrangements: *Label only*, *Port only*, *CEC only*, *Label, then port*, *Port, then label*, and the same pairs for the device's HDMI-CEC name (*CEC, then port*, *Port, then CEC*): what a pill shows of the port (`HDMI 2`, `AV 1`, `USB 1`), the name set on the TV for that input and the CEC name. The label modes fall back to the CEC name when no label is set, and the other way round. A pill drawn with the choice appears below the values. Missing label/CEC names fall back as before. Icons are chosen per input in its edit mode |
+| | Input name above favourites | Port (default), Label or CEC; independent of the tile appearance, with the same fallback for missing names |
 | | Long input names | *Ellipsis* (default) or *Scroll*: a name wider than the 200 px a pill can take either ends in "…", or, while that tile is focused, scrolls slowly to its end and back |
 | | Shortcuts | A box for *Free up memory* (off by default) and for the *Apps* and *Inputs* shortcuts: the same, for the tiles after the inputs |
 | | Memory freeing action | *Close background apps* (default) or *Open LG Memory Optimizer*. The first closes apps immediately; the second opens LG's optimiser screen and leaves *Start* to you. The shortcut's title follows the chosen action. The optimiser option is offered only when the TV's LG Settings includes that screen |
