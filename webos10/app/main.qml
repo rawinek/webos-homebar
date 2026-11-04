@@ -186,9 +186,9 @@ WebOSWindow {
         home.foreground = true;
         home.forceActiveFocus();
         home.loadInputs();
-        // back-mode and exit-mask are read again at each show, so trying another
-        // needs no restart.
-        home.http("/home", function(r) { win.backMode = r.backMode || ""; win.applyKeyMask(r.exitMask === true); win.noteClaims(); });
+        // back-mode is read again at each show, so trying another needs no restart.
+        home.http("/home", function(r) { win.backMode = r.backMode || ""; });
+        noteClaims();
     }
     // The claims as the window holds them now, at each show: the notes from
     // the start can be lost when the panel starts before the setup server
@@ -198,19 +198,6 @@ WebOSWindow {
             note("claims: BACK " + win.windowProperties["_WEBOS_ACCESS_POLICY_KEYS_BACK"] + ", EXIT "
                  + win.windowProperties["_WEBOS_ACCESS_POLICY_KEYS_EXIT"] + ", key mask " + win.keyMask);
         } catch (e) { note("claims: " + e); }
-    }
-    // A test switch for webOS 11 (issue #20): with exit-mask in the launcher's
-    // folder the window claims BACK and EXIT in its key mask too, which webOS
-    // names as the replacement for the window properties. HOME stays out of
-    // the mask: claiming it broke HOME on the B4.
-    property bool exitMasked: false
-    function applyKeyMask(on) {
-        if (on === exitMasked) return;
-        try {
-            win.keyMask = on ? (WebOSWindow.KeyMaskDefault | WebOSWindow.KeyMaskBack | WebOSWindow.KeyMaskExit) : WebOSWindow.KeyMaskDefault;
-            exitMasked = on;
-            note("key mask " + (on ? "with BACK and EXIT: " : "default: ") + win.keyMask);
-        } catch (e) { note("key mask not set: " + e); }
     }
     function hide() {
         home.foreground = false;   // runs the panel's 180 ms fade-out
@@ -223,9 +210,6 @@ WebOSWindow {
         anchors.fill: parent
         foreground: !win.preloaded
         onCloseRequested: if (home.closeReason === "back") win.closeByBack(); else win.hide()
-        // Every key the panel gets while it is up, for issue #20: whether
-        // anything still reaches the window after webOS 11 hid it on a held BACK.
-        onKeySeen: if (!autoRepeat) win.note("key " + key + (pressed ? " down" : " up"))
         // A timeout is not a BACK press: hide this overlay window only, so
         // the system keeps the Magic Remote pointer where it is.
         onTimeoutRequested: win.hide()
