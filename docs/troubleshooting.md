@@ -79,6 +79,15 @@ shows LG's Home, nothing, or a black screen:
 - Switch back in *Launcher settings → Launch method*, or run the
   [uninstaller](install.md#uninstall); both give LG's Home back.
 
+## The remote stops after holding BACK (webOS 11)
+
+On webOS 11 (tested on an LG G5), holding BACK while Homebar is open makes
+the TV hide Homebar by itself: a held BACK becomes the TV's EXIT key, which
+webOS 11 handles before it reaches Homebar, even though Homebar claims it.
+Homebar gets no sign of it, so the remote stays with the hidden panel.
+Press HOME to get the remote back. A short BACK closes Homebar normally;
+webOS 10 is not affected.
+
 ## HOME does nothing (overlay)
 
 In the additional overlay HOME stays with LG on purpose: open Homebar from its
