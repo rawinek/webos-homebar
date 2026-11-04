@@ -256,6 +256,17 @@ FocusScope {
     property string buttonText: ""
     property bool buttonUnpin: false
     property int buttonCapture: 0
+    // Apps → hold OK on an app: its menu ("menu": favourites, hide, uninstall),
+    // the question before an uninstall ("confirm", opens on No), the wait
+    // ("removing") and how it went ("done", appText). appTarget is the app.
+    property string appStep: ""
+    property var appTarget: null
+    property int appChoice: 0
+    property bool appConfirmYes: false
+    property string appText: ""
+    // The app being uninstalled; it is done when it leaves the TV's list.
+    property string uninstallId: ""
+    property string uninstallTitle: ""
     readonly property var settingGroups: groupsFor(Config.exitTarget, modeInfo.available, modeInfo.available && modeInfo.current !== "native")
     readonly property var settingKeys: keysOf(settingGroups)
     readonly property var menuRows: rowsOf(settingGroups, lang)
@@ -972,10 +983,13 @@ FocusScope {
         if (buttonStep === "menu") return [hint([hintKey("◀ ▶")], t("hint_choose")), hint([ok], t("hint_confirm")), hint([back], t("button_cancel"))];
         if (buttonStep === "done") return [hint([ok], t("mode_ok"))];
         if (buttonStep !== "") return buttonStep === "first" || buttonStep === "second" ? [hint([back], t("button_cancel"))] : [];
+        if (appStep === "menu") return [hint([hintKey("▲ ▼")], t("hint_choose")), hint([ok], t("hint_confirm")), hint([back], t("button_cancel"))];
+        if (appStep === "confirm") return [hint([hintKey("◀ ▶")], t("hint_choose")), hint([ok], t("hint_confirm")), hint([back], t("mode_no"))];
+        if (appStep !== "") return [hint([ok], t("mode_ok"))];
         if (currentPage === "apps") {
             var app = apps[index];
             var fav = app && keys.indexOf(app.id) >= 0, hid = app && hiddenIds.indexOf(app.id) >= 0;
-            return [hint([ok], t("hint_open")), hint([hold, yellow], fav ? t("hint_remove_fav") : t("hint_add_fav")),
+            return [hint([ok], t("hint_open")), hint([hold], t("hint_options")), hint([yellow], fav ? t("hint_remove_fav") : t("hint_add_fav")),
                     hint([red], hid ? t("hint_unhide") : t("hint_hide")), hint([back], t("hint_favourites"))];
         }
         if (currentPage === "inputs") {
@@ -1126,6 +1140,70 @@ FocusScope {
         save(hiddenIds, "hidden");
         selected = Math.max(0, Math.min(selected, apps.length-1));
     }
+    // Apps Homebar never offers to uninstall: itself, the Homebrew Channel
+    // and Input Hook, which HOME needs on the overlay.
+    readonly property var keepApps: ["org.rawin.launcher", "org.webosbrew.hbchannel", "org.webosbrew.inputhook"]
+    // Only an app the TV marks removable and not a system app (from the LG
+    // Content Store or the Homebrew Channel), with an id safe to pass on.
+    function canUninstall(app) {
+        return !!app && app.removable === true && keepApps.indexOf(app.id) < 0 && /^[A-Za-z0-9._-]+$/.test(app.id);
+    }
+    function capitalised(text) { return text ? text.charAt(0).toUpperCase() + text.slice(1) : ""; }
+    function appMenuItems(app) {
+        if (!app) return [];
+        var items = [
+            {id: "favourite", label: capitalised(t(favouriteKeys.indexOf(app.id) >= 0 ? "hint_remove_fav" : "hint_add_fav"))},
+            {id: "hide", label: capitalised(t(hiddenIds.indexOf(app.id) >= 0 ? "hint_unhide" : "hint_hide"))}
+        ];
+        if (canUninstall(app)) items.push({id: "uninstall", label: t("app_uninstall")});
+        return items;
+    }
+    readonly property var appItems: appStep === "menu" ? appMenuItems(appTarget) : []
+    function openAppMenu(app) {
+        if (!app) return;
+        appTarget = app; appChoice = 0; appConfirmYes = false; appText = ""; appStep = "menu";
+    }
+    function closeAppMenu() { appStep = ""; appTarget = null; appText = ""; }
+    function chooseAppItem() {
+        var item = appItems[appChoice], app = appTarget;
+        if (!item || !app) { closeAppMenu(); return; }
+        if (item.id === "uninstall") { appConfirmYes = false; appStep = "confirm"; return; }
+        closeAppMenu();
+        if (item.id === "favourite") toggleFavourite(app);
+        else if (item.id === "hide") toggleHidden(app);
+    }
+    function answerUninstall(yes) {
+        var app = appTarget;
+        if (!yes || !canUninstall(app)) { closeAppMenu(); return; }
+        uninstallId = app.id; uninstallTitle = app.title;
+        appText = Strings.format(t("app_removing"), {app: app.title}); appStep = "removing";
+        uninstallWatch.count = 0; uninstallWatch.restart();
+        uninstallRun(app.id);
+    }
+    // The uninstall was handed to the TV (ok) or refused at once.
+    function uninstallStarted(ok) { if (!ok && uninstallId !== "") finishUninstall(false); }
+    function finishUninstall(ok) {
+        if (uninstallId === "") return;
+        var id = uninstallId, text = Strings.format(t(ok ? "app_removed" : "app_remove_failed"), {app: uninstallTitle});
+        uninstallWatch.stop(); uninstallId = ""; uninstallTitle = "";
+        if (ok) {
+            // Gone from the TV: off Home and out of the hidden list too.
+            var favs = favouriteKeys.slice(0), f = favs.indexOf(id);
+            if (f >= 0) { favs.splice(f, 1); setFavourites(favs); }
+            var hid = hiddenIds.slice(0), h = hid.indexOf(id);
+            if (h >= 0) { hid.splice(h, 1); hiddenIds = hid; save(hiddenIds, "hidden"); }
+            if (page === "apps") selected = Math.max(0, Math.min(selected, apps.length-1));
+        }
+        if (appStep === "removing") { appText = text; appStep = "done"; }
+        else notice = text;
+    }
+    // The TV removes an app in a few seconds; its list is asked again until
+    // the app has left it, for up to 90 s.
+    Timer {
+        id: uninstallWatch; interval: 1500; repeat: true
+        property int count: 0
+        onTriggered: { if (++count > 60) finishUninstall(false); else catalog.callService({}); }
+    }
     function toggleHiddenInput(id) {
         if (id === "tv") { setSetting("tv", settings.tv !== true); notice = t(settings.tv ? "unhidden_input" : "hidden_input"); return; }
         var source = sourceById(id), byDefault = !source || onRowByDefault(source.type);
@@ -1144,12 +1222,18 @@ FocusScope {
         if (!ready || launching) return;
         if (page === "apps") { if (apps[selected]) toggleHidden(apps[selected]); }
     }
+    // YELLOW: what holding OK does, except in Apps, where it adds or removes
+    // the favourite at once (holding OK opens the app's menu there).
+    function yellowAction() {
+        if (page === "apps") { pendingRemoval = ""; if (ready && !launching && apps[selected]) toggleFavourite(apps[selected]); }
+        else secondaryAction();
+    }
     // Hold OK (or the yellow key): edit a favourite, a source or a shortcut
-    // on Home; toggle a favourite in Apps.
+    // on Home; open an app's menu in Apps.
     function secondaryAction() {
         pendingRemoval = "";
         if (!ready || launching) return;
-        if (page === "apps") { if (apps[selected]) toggleFavourite(apps[selected]); }
+        if (page === "apps") { if (apps[selected]) openAppMenu(apps[selected]); }
         else if (page === "inputs") { if (allSources[selected]) toggleHiddenInput(allSources[selected].id); }
         else if (page !== "home") return;
         else {
@@ -1606,6 +1690,30 @@ FocusScope {
             } else if ((buttonStep === "first" || buttonStep === "second") && isBack(event.key)) closeButton();
             return;
         }
+        // The app popup takes every key too: the menu goes up and down, the
+        // question left and right (BACK is No); while the TV removes the app,
+        // BACK only closes the popup (the result comes as a notice).
+        if (appStep !== "") {
+            event.accepted = true;
+            if (event.isAutoRepeat) return;
+            // The hold that opened the menu, still going: an infrared remote
+            // keeps sending it as quick presses, which must not choose an item.
+            // Its release goes the usual way and ends the hold (okRelease).
+            if (isOk(event.key) && longFired && (okHeld || okRelease.running)) { okRelease.stop(); return; }
+            modeKeyHeld = event.key;
+            if (appStep === "menu") {
+                if (isBack(event.key)) closeAppMenu();
+                else if (isOk(event.key)) chooseAppItem();
+                else if (event.key === Qt.Key_Up) appChoice = Math.max(0, appChoice - 1);
+                else if (event.key === Qt.Key_Down) appChoice = Math.min(appItems.length - 1, appChoice + 1);
+            } else if (appStep === "confirm") {
+                if (isBack(event.key)) answerUninstall(false);
+                else if (isOk(event.key)) answerUninstall(appConfirmYes);
+                else if (event.key === Qt.Key_Left || event.key === Qt.Key_Right || event.key === Qt.Key_Up || event.key === Qt.Key_Down)
+                    appConfirmYes = event.key === Qt.Key_Left || event.key === Qt.Key_Up;
+            } else if (isOk(event.key) || isBack(event.key)) closeAppMenu();
+            return;
+        }
         if (page === "settings" && menuHover >= 0 && isOk(event.key) && !event.isAutoRepeat) {
             pane = 0; selected = menuHover;
         }
@@ -1634,7 +1742,7 @@ FocusScope {
         if (isExit(event.key)) { event.accepted = true; if (!event.isAutoRepeat && foreground) closeHome("back"); return; }
         if (modeKeyHeld === event.key) { event.accepted = true; if (!event.isAutoRepeat) modeKeyHeld = 0; return; }
         if (isHomeKey(event.key)) { event.accepted = true; return; }
-        if (isYellow(event.key)) { event.accepted=true; if (!event.isAutoRepeat) secondaryAction(); return; }
+        if (isYellow(event.key)) { event.accepted=true; if (!event.isAutoRepeat) yellowAction(); return; }
         if (isRed(event.key)) { event.accepted=true; if (!event.isAutoRepeat) hideAction(); return; }
         if (!actionKey(event.key)) return;
         event.accepted=true;
@@ -1676,6 +1784,9 @@ FocusScope {
         // A remote-button popup does not outlive the panel; an answer still on
         // its way is dropped (buttonCapture).
         if (buttonStep !== "") { buttonStep = ""; buttonText = ""; buttonCapture++; }
+        // The app popup closes with the panel; an uninstall under way goes on
+        // and its result waits as a notice.
+        if (appStep !== "") closeAppMenu();
         if (foreground) {
             foregroundSince = Date.now();
             launching = false; message = ""; page="home"; selected=0; pane=0; forceActiveFocus();
@@ -1831,7 +1942,10 @@ FocusScope {
     // no colour for: the icon is drawn small and its vivid pixels averaged
     // (grey, white and black count for little), once per icon, and kept in
     // "colors" with the icon's path, so a changed icon is read again.
-    onApplicationsChanged: glowReader.queueAll()
+    onApplicationsChanged: {
+        glowReader.queueAll();
+        if (uninstallId !== "" && !installed(uninstallId, applications)) finishUninstall(true);
+    }
     Canvas {
         id: glowReader
         // Off screen and see-through, not invisible: an invisible Canvas
@@ -1956,7 +2070,8 @@ FocusScope {
                 if (seen[entry.id] || Config.excluded.indexOf(entry.id)>=0) continue;
                 seen[entry.id]=true;
                 var icon = entry.largeIcon || entry.icon;
-                next.push({id: entry.id, title: entry.title || entry.id, icon: icon ? "file://"+icon : ""});
+                next.push({id: entry.id, title: entry.title || entry.id, icon: icon ? "file://"+icon : "",
+                           removable: entry.removable === true && entry.systemApp !== true});
             }
             if (same(next, applications)) return;
             applications=next;
@@ -2067,6 +2182,24 @@ FocusScope {
         method: "exec"
         onCallFailure: message = t("err_restart")
         onError: message = t("err_restart")
+    }
+    // Uninstalling, as root through the Homebrew Channel's exec: a Homebrew
+    // app (in the developer folder) goes through dev/remove, the rest through
+    // remove, as LG's Home does it. The TV answers at once and removes the
+    // app in the background; uninstallWatch sees it leave the list.
+    Service {
+        id: uninstallService
+        appId: "com.webos.app.home"
+        service: "org.webosbrew.hbchannel.service"
+        method: "exec"
+        onCallSuccess: uninstallStarted(String(response.stdoutString || "").indexOf('"returnValue":true') >= 0)
+        onCallFailure: uninstallStarted(false)
+        onError: uninstallStarted(false)
+    }
+    function uninstallRun(id) {
+        if (!/^[A-Za-z0-9._-]+$/.test(id)) { uninstallStarted(false); return; }
+        uninstallService.callService({command: "m=remove; [ -d /media/developer/apps/usr/palm/applications/" + id + " ] && m=dev/remove; "
+                                      + "luna-send -n 1 luna://com.webos.appInstallService/$m '{\"id\":\"" + id + "\"}'"});
     }
     Timer { id: launchTimeout; interval: 8000; onTriggered: { launching=false; message=t("err_slow"); } }
 
@@ -3546,6 +3679,94 @@ FocusScope {
                                     if (shell.buttonStep === "done") shell.closeButton();
                                     else { shell.buttonUnpin = parent.unpin; shell.answerButtonMenu(); }
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Apps → hold OK: the app's menu, the question before an uninstall, the
+    // wait and how it went. Above everything, like the other popups.
+    Rectangle {
+        id: appPopup
+        objectName: "appPopup"
+        visible: shell.appStep !== ""
+        z: 62; x: 0; y: 0; width: shell.width; height: shell.height
+        color: Qt.rgba(0, 0, 0, 0.62)
+        MouseArea {
+            anchors.fill: parent
+            onClicked: { shell.noteActivity(); if (shell.appStep === "confirm") shell.answerUninstall(false); else shell.closeAppMenu(); }
+        }
+        Rectangle {
+            anchors.centerIn: parent
+            width: Math.min(parent.width - 2*shell.margin, shell.px(760)); height: appColumn.implicitHeight + shell.px(60)
+            radius: shell.px(22); color: shell.chip
+            border.color: shell.appStep === "confirm" ? shell.warning : shell.theme.focus; border.width: Math.max(1, 2*shell.u)
+            MouseArea { anchors.fill: parent; onClicked: {} }
+            Column {
+                id: appColumn
+                x: shell.px(34); y: shell.px(30); width: parent.width - 2*x; spacing: shell.px(20)
+                Text {
+                    objectName: "appTitle"
+                    width: parent.width; wrapMode: Text.WordWrap; textFormat: Text.PlainText
+                    text: shell.appStep === "confirm" && shell.appTarget ? Strings.format(shell.t("app_uninstall_q"), {app: shell.appTarget.title})
+                          : shell.appTarget ? shell.appTarget.title : shell.t("app_uninstall")
+                    font.family: shell.fontName; font.bold: true; font.pixelSize: shell.pt(26); color: shell.ink
+                }
+                Text {
+                    objectName: "appText"
+                    visible: text !== ""
+                    width: parent.width; wrapMode: Text.WordWrap; textFormat: Text.PlainText
+                    text: shell.appStep === "confirm" ? shell.t("app_uninstall_note") : shell.appStep === "menu" ? "" : shell.appText
+                    font.family: shell.fontName; font.pixelSize: shell.pt(20); color: shell.ink2
+                }
+                // The menu: one row per action, the chosen one lit.
+                Column {
+                    visible: shell.appStep === "menu"
+                    width: parent.width; spacing: shell.px(10)
+                    Repeater {
+                        model: shell.appItems
+                        Rectangle {
+                            readonly property bool lit: shell.appChoice === index
+                            objectName: "appItem_" + modelData.id
+                            width: parent.width; height: shell.px(56); radius: shell.px(12)
+                            color: lit ? shell.theme.focus : shell.theme.track
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter; x: shell.px(22)
+                                text: modelData.label
+                                font.family: shell.fontName; font.bold: true; font.pixelSize: shell.pt(21)
+                                color: parent.lit ? shell.theme.onFocus : shell.ink
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: { shell.noteActivity(); shell.appChoice = index; shell.chooseAppItem(); }
+                            }
+                        }
+                    }
+                }
+                // The question (Yes / No, on No at first), or OK once it is done.
+                Row {
+                    spacing: shell.px(16)
+                    visible: shell.appStep === "confirm" || shell.appStep === "done"
+                    Repeater {
+                        model: shell.appStep === "confirm" ? [true, false] : [true]
+                        Rectangle {
+                            readonly property bool yes: modelData
+                            readonly property bool lit: shell.appStep === "done" || shell.appConfirmYes === yes
+                            objectName: shell.appStep === "done" ? "appOk" : yes ? "appYes" : "appNo"
+                            width: shell.px(150); height: shell.px(52); radius: shell.px(12)
+                            color: lit ? shell.theme.focus : shell.theme.track
+                            Text {
+                                anchors.centerIn: parent
+                                text: shell.appStep === "done" ? shell.t("mode_ok") : shell.t(parent.yes ? "mode_yes" : "mode_no")
+                                font.family: shell.fontName; font.bold: true; font.pixelSize: shell.pt(21)
+                                color: parent.lit ? shell.theme.onFocus : shell.ink
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: { shell.noteActivity(); if (shell.appStep === "confirm") shell.answerUninstall(parent.yes); else shell.closeAppMenu(); }
                             }
                         }
                     }

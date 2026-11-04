@@ -40,7 +40,7 @@ The picture stays where it is. Press HOME again, or BACK, and it is gone.
   </tr>
   <tr>
     <td><b>Settings with a live preview.</b> One menu: language, theme, text size, the clock and the weather, what the row shows, backup and updates. Arrow keys preview values; pointing only highlights them until you click.</td>
-    <td><b>Favourites chosen on the TV.</b> Hold OK on an app to add it, up to seven; hold OK on a favourite to move it or take it off the row.</td>
+    <td><b>Favourites chosen on the TV.</b> YELLOW on an app adds it, up to seven; hold OK on a favourite to move it or take it off the row.</td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/home-terracotta.jpg" alt="The Home row in the light Terracotta theme"></td>
@@ -61,6 +61,9 @@ The picture stays where it is. Press HOME again, or BACK, and it is gone.
   sets that have them and the USB drives plugged in, with hold OK to put one on
   the Home row or take it off. A USB drive opens in LG's media player.
   [Inputs](docs/using.md#inputs).
+- **Uninstall from Homebar**: hold OK on an app in *Apps* to uninstall it,
+  for apps from the LG Content Store or the Homebrew Channel, after a question.
+  [Apps](docs/using.md#apps).
 - **Safer editing**: a red warning appears before a second DOWN press removes
   a favourite, input or optional shortcut from the Home row.
 - **Ten languages**, the TV's own by default: English, Spanish, German,

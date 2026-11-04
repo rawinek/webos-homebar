@@ -81,7 +81,7 @@
                 for (var i=0; i<r.apps.length; i++) {
                     var a = r.apps[i];
                     if (Config.excluded.indexOf(a.id) >= 0) continue;
-                    next.push({id: a.id, title: a.title, icon: a.icon ? shell.helper + "/" + a.icon : ""});
+                    next.push({id: a.id, title: a.title, icon: a.icon ? shell.helper + "/" + a.icon : "", removable: a.removable === true});
                 }
                 if (same(next, applications)) return;
                 applications = next;
@@ -155,6 +155,11 @@
     }
     function buttonUnbindRun() {
         http("/button", function(r) { buttonSaved(r); }, function(status, answer) { buttonSaved(answer); }, {step: "unbind"});
+    }
+    // Uninstalling: the helper hands the app to the TV's installer and
+    // answers at once; uninstallWatch sees it leave the list.
+    function uninstallRun(id) {
+        http("/uninstall", function(r) { uninstallStarted(r.returnValue === true); }, function() { uninstallStarted(false); }, {id: id});
     }
     // The helper closes and launches the overlay process after replying, so
     // this QML instance never has to restart itself while handling a click.

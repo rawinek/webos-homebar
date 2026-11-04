@@ -73,7 +73,8 @@ stays visible above it. One row, from the left:
 
 The focused item's name shows above the row, and the hints under it say what
 OK and the other keys do, the remote's colour keys in their own colour
-(YELLOW does what holding OK does, RED hides an app in *Apps*). The chip in the top-right corner shows what is on
+(YELLOW does what holding OK does, except in *Apps*, where it adds or removes
+the favourite and holding OK opens the app's menu; RED hides an app in *Apps*). The chip in the top-right corner shows what is on
 screen, the [weather](#weather) and the time; each of the three can be hidden. HOME pressed again closes the panel too (on the Home panel the remote sends it to Homebar as a key; on the overlay HOME toggles it). BACK closes the panel; from *Apps* or *System* it goes
 back to Home. The panel fits the TV's screen, HD or FHD/UHD, at the same
 proportions. Each input fits its own label or CEC name and optional second
@@ -109,8 +110,9 @@ cannot be removed. This changes the Home row only; it does not uninstall apps.
 
 Favourites are chosen on the TV:
 
-- In *Apps*, **hold OK** (or press YELLOW) on an app to add it, up to seven.
-  A favourite is marked with a dot; holding OK on it again removes it.
+- In *Apps*, press **YELLOW** on an app to add it, up to seven, or **hold OK**
+  and choose *Add to favourites*. A favourite is marked with a dot; the same
+  again removes it.
 - On Home, **hold OK** on a favourite to edit it: ← → move it, ▼ twice removes it,
   OK, BACK or ▲ finish.
 
@@ -140,6 +142,15 @@ settings → Apps order* puts them in the TV's
 order, from A to Z, or the most used first, counted from the launcher's own
 launches. An app's glow colour lights the bottom-left corner while it is
 focused: the colour the build knows for it, else one read from its icon.
+
+**Hold OK** on an app (or hold a pointer click) for its menu: add it to or
+remove it from the favourites, hide it, or **uninstall** it. *Uninstall* is
+there only for apps the TV lets go of, those from the LG Content Store and
+the Homebrew Channel, never for LG's own apps, Homebar, the Homebrew Channel
+or Input Hook. Homebar asks first (the answer starts on *No*); the TV then
+removes the app and its data in a few seconds, and it leaves the favourites
+and the hidden apps too. An app from the store can be installed again from
+there, a Homebrew one from the Homebrew Channel.
 
 ## Inputs
 

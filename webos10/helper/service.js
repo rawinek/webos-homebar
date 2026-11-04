@@ -96,12 +96,17 @@ async function inventory() {
   for (const p of r.launchPoints) {
     if (seen.has(p.id)) continue;
     seen.add(p.id);
-    apps.push({ id: p.id, title: p.title || p.id, icon: cachedIcon(p.id, p.largeIcon || p.icon) });
+    // removable: the TV may uninstall it (an LG Content Store or Homebrew app).
+    apps.push({ id: p.id, title: p.title || p.id, icon: cachedIcon(p.id, p.largeIcon || p.icon),
+                removable: p.removable === true && p.systemApp !== true });
   }
   return { returnValue: true, apps };
 }
 
 const BASE = '/var/lib/webosbrew/rawin-launcher-home';
+// Apps the panel never uninstalls: Homebar itself, the Homebrew Channel and
+// Input Hook (HOME needs it on the overlay).
+const KEEP_APPS = new Set([APP, 'org.webosbrew.hbchannel', 'org.webosbrew.inputhook']);
 const UPDATER = BASE + '/update.sh';
 // Favourites and settings, as the panel sends them (Launcher settings → Back up).
 const BACKUP = BASE + '/backup.json';
@@ -144,7 +149,7 @@ function send(res, code, body, type) {
 // these, with the X-Homebar header. status, check-free reads stay plain.
 function changesState(url, req) {
   const p = url.pathname;
-  if (['/launch', '/close-apps', '/exit-target', '/restart', '/backup', '/home-key'].includes(p)) return true;
+  if (['/launch', '/close-apps', '/exit-target', '/restart', '/backup', '/home-key', '/uninstall'].includes(p)) return true;
   if (p === '/update') return String((url.query || {}).step || '') !== 'status';
   if (p === '/mode' || p === '/button') return req.method !== 'GET';
   return false;
@@ -163,6 +168,24 @@ const server = http.createServer(async (req, res) => {
       const inv = await inventory();
       if (inv.apps) known = new Set(inv.apps.map((a) => a.id));
       return send(res, inv.returnValue ? 200 : 502, inv);
+    }
+    // Uninstall one app the TV marks removable, never Homebar, the Homebrew
+    // Channel or Input Hook. A Homebrew app (in the developer folder) goes
+    // through dev/remove, the rest through remove, as LG's Home does it; the
+    // TV answers at once and removes the app in the background.
+    if (url.pathname === '/uninstall' && req.method === 'POST') {
+      let body = {};
+      try { body = JSON.parse(await readBody(req) || '{}'); } catch (e) {}
+      const id = String(body.id || '');
+      if (!/^[A-Za-z0-9._-]+$/.test(id) || KEEP_APPS.has(id)) return send(res, 403, { returnValue: false, errorText: 'not removable' });
+      const inv = await inventory();
+      const app = (inv.apps || []).find((a) => a.id === id);
+      if (!app || !app.removable) return send(res, 403, { returnValue: false, errorText: 'not removable' });
+      const info = await luna('luna://com.webos.applicationManager/getAppInfo', { id: id });
+      const folder = String((info.appInfo || {}).folderPath || '');
+      const method = folder.startsWith('/media/developer/') ? 'dev/remove' : 'remove';
+      note('uninstall ' + id + ' (' + method + ')');
+      return send(res, 200, await luna('luna://com.webos.appInstallService/' + method, { id: id }));
     }
     if (url.pathname === '/inputs') {
       return send(res, 200, await luna('luna://com.webos.service.eim/getAllInputStatus', {}));
