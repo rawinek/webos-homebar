@@ -321,6 +321,8 @@ FocusScope {
     // the Home card (and therefore the Magic Remote pointer) alive.
     signal timeoutRequested()
     signal exitTargetChosen(string target)
+    // Each key the panel gets (the overlay host logs them).
+    signal keySeen(int key, bool pressed, bool autoRepeat)
 
     // Spotlight B2: the focused item is named above a rail of rounded tiles,
     // its colour lights the bottom-left edge, the picture stays visible.
@@ -1571,6 +1573,7 @@ FocusScope {
     // page, on its release like BACK.
     function isExit(key) { return key === WebOS.Key_webOS_Exit; }
     Keys.onPressed: {
+        keySeen(event.key, true, event.isAutoRepeat);
         noteActivity();
         if (isExit(event.key)) { event.accepted = true; return; }
         if (isHomeKey(event.key)) {
@@ -1631,6 +1634,7 @@ FocusScope {
     // The key a popup answered: its release must not act on the page beneath.
     property int modeKeyHeld: 0
     Keys.onReleased: {
+        keySeen(event.key, false, event.isAutoRepeat);
         if (isExit(event.key)) { event.accepted = true; if (!event.isAutoRepeat && foreground) closeHome("back"); return; }
         if (modeKeyHeld === event.key) { event.accepted = true; if (!event.isAutoRepeat) modeKeyHeld = 0; return; }
         if (isHomeKey(event.key)) { event.accepted = true; return; }

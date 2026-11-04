@@ -97,7 +97,7 @@ or_note() { out=$("$@" 2>/dev/null); if [ -n "$out" ]; then echo "$out"; else ec
             grep -rn -E '_WEBOS_ACCESS_POLICY_KEYS_BACK|_WEBOS_WINDOW_TYPE_OVERLAY.*&&|ItemStateNormal' /usr/lib/qml/WebOSCompositor 2>/dev/null | sed 's|/usr/lib/qml/WebOSCompositor/||' | cut -c1-180 | head -n 30
         fi
         # What the last HOME presses found and did (main.qml through the setup server).
-        if [ -f /tmp/rawin-launcher-panel.log ]; then echo "-- panel log (last HOME presses)"; tail -n 40 /tmp/rawin-launcher-panel.log; fi
+        if [ -f /tmp/rawin-launcher-panel.log ]; then echo "-- panel log (last HOME presses)"; tail -n 80 /tmp/rawin-launcher-panel.log; fi
     else
         echo "(Home panel: no helper; the panel talks to the TV from inside LG Home)"
     fi

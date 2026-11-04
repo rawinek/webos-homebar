@@ -181,7 +181,12 @@ const server = http.createServer(async (req, res) => {
       let backMode = '';
       try { backMode = fs.readFileSync('/var/lib/webosbrew/rawin-launcher-home/back-mode', 'utf8').trim(); } catch (e) {}
       if (!/^(key|card|home|none)$/.test(backMode)) backMode = '';
-      return send(res, 200, { returnValue: true, lgHome: !mounted, nativeHome: nativeHomeMounted(), configuredNativeHome: nativeHome(), backMode: backMode });
+      // exit-mask: the panel claims BACK and EXIT in its key mask as well, a
+      // test for webOS 11, where a held BACK (EXIT) still left the remote on
+      // the hidden panel with the window properties alone (issue #20).
+      let exitMask = false;
+      try { fs.accessSync('/var/lib/webosbrew/rawin-launcher-home/exit-mask'); exitMask = true; } catch (e) {}
+      return send(res, 200, { returnValue: true, lgHome: !mounted, nativeHome: nativeHomeMounted(), configuredNativeHome: nativeHome(), backMode: backMode, exitMask: exitMask });
     }
     if (url.pathname === '/foreground') {
       return send(res, 200, await luna('luna://com.webos.applicationManager/getForegroundAppInfo', { extraInfo: true }));
