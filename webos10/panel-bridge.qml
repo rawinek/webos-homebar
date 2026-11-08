@@ -61,12 +61,12 @@
         helperRetry.left--;
         helperRetry.restart();
     }
-    // Closing every app in the background: closeAllApps, called by the helper.
+    // Closing the apps in the background (not the one on screen): the helper's /close-apps.
     QtObject {
         id: closeAppsService
         function callService(p) {
             shell.http("/close-apps", function(r) {
-                notice = r.returnValue ? t("close_apps_done") : t("close_apps_failed");
+                notice = !r.returnValue ? t("close_apps_failed") : r.closed > 0 ? t("close_apps_done") : t("close_apps_none");
                 catalog.callService({});
             }, function() { notice = t("err_unavailable"); });
         }
@@ -175,7 +175,7 @@
                 var list = r.foregroundAppInfo || [];
                 for (var i=0; i<list.length; i++) {
                     if (list[i].appId.indexOf("org.rawin.launcher") === 0 || list[i].windowType === "_WEBOS_WINDOW_TYPE_OVERLAY") continue;
-                    if (describe(list[i].windowGroupOwnerId || list[i].appId)) return;
+                    if (describe(list[i].windowGroupOwnerId || list[i].appId)) { focusCurrentInput(); return; }
                 }
             });
         }

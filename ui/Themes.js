@@ -14,7 +14,10 @@ var themes = [
     {id: "terracotta", accent: "#E26F4A", base: "#FFFCF4"},
     {id: "cherry", accent: "#FF173D", base: "#F9DEDF"},
     {id: "cobalt", accent: "#1D61F3", base: "#F1F4F9"},
-    {id: "indigo", accent: "#263BAA", base: "#FFF4D6"}
+    {id: "indigo", accent: "#263BAA", base: "#FFF4D6"},
+    // Pure black and white for OLED screens: black shade, tiles and menu,
+    // white text, focus and warnings, no coloured glow, app icons in greys (mono).
+    {id: "amoled", mono: true}
 ];
 var ids = themes.map(function(t) { return t.id; });
 
@@ -77,9 +80,47 @@ function find(id) {
     return themes[0];
 }
 
+// AMOLED: black where the panel draws anything but text, white for the
+// text and the focused tile, greys only to tell parts apart.
+var amoled = {
+    mono: true,
+    scrim: "#000000",
+    surface: "#000000",
+    surfaceEdge: "#33ffffff",
+    divider: "#33ffffff",
+    chip: "#000000",
+    chipEdge: "#4dffffff",
+    tile: "#000000",
+    gap: "#000000",
+    handle: "#f2000000",
+    focus: "#ffffff",
+    ring: "#ffffff",
+    onFocus: "#000000",
+    onFocus2: "#595959",
+    heading: "#ffffff",
+    headingShadow: "#00000000",
+    text: "#e6e6e6",
+    hint: "#a6a6a6",
+    keyLabel: "#f2f2f2",
+    ink: "#ffffff",
+    ink2: "#d9d9d9",
+    ink3: "#a6a6a6",
+    label: "#f2f2f2",
+    dim: "#808080",
+    dim2: "#5c5c5c",
+    keyEdge: "#66ffffff",
+    track: "#26ffffff",
+    version: "#737373",
+    neutral: "#000000",
+    // Editing, the update dot, popups' frames and errors: white too, so
+    // nothing on screen has a colour.
+    warning: "#ffffff"
+};
+
 // Every colour the panel uses, for a theme id (unknown: the default).
 function palette(id) {
     var t = find(id);
+    if (t.mono) return amoled;
     if (!t.accent) return original;
     var A = t.accent, B = t.base;
     var light = luminance(B) > 0.4;

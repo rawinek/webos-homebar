@@ -198,7 +198,7 @@ for width,height in [(1920,1080),(1280,720)]:
   js('shell.pane=0;shell.selected=shell.settingKeys.indexOf("inputHeading");shell.enterValues()');rp.wait(100)
   assert js('shell.valueOptions.map(function(v){return v.id;})')==['hdmi','label','cec']
   assert js('shell.settingFor("inputText").title')=='Wygląd wejść'
-  assert js('shell.settingFor("inputHeading").title')=='Nazwa wejścia nad ulubionymi'
+  assert js('shell.settingFor("inputHeading").title')=='Nagłówek wejścia'
   key(Qt.Key_Down);key(Qt.Key_Return)
   assert js('shell.settings.inputHeading')=='label'
   js('shell.loadSettings()');assert js('shell.backupData().settings.inputHeading')=='label'

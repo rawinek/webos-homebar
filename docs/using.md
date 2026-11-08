@@ -18,7 +18,8 @@
 <img src="screenshots/home.jpg" width="100%" alt="Home over a playing video: seven favourites, HDMI 1 to 4 with the device on HDMI 3 and 4, Apps and System">
 
 HOME on the remote opens the panel over whatever is on screen; the picture
-stays visible above it. One row, from the left:
+stays visible above it. One row, from the left (with *Row order* set to
+*Inputs, then favourites*, the sources come first, see below):
 
 - **Favourites**: up to seven apps. With none yet, an *Add favourites* tile
   opens *Apps*.
@@ -49,17 +50,19 @@ stays visible above it. One row, from the left:
   sorted alphabetically by the names shown in your selected language.
   Choose **Icon only**, **Icon + port**, **Icon + label** or **Icon + CEC** under
   *Launcher settings → Home row → Input appearance*. Icon-only inputs are slightly wider (72 × 64 px at FHD); other arrangements keep the fitted width, capped at 200 px.
-  **Input name above favourites** independently chooses **Port**, **Label** or
+  **Input heading** independently chooses **Port**, **Label** or
   **CEC** for the large heading (default: Port). The port is the input's own name
   (`HDMI 2`, `AV 1`, `USB 1`); a USB drive's label is the drive's name. A missing label falls back to
   CEC, a missing CEC name to the label, and finally to the port name.
   Existing text arrangements stay available and remain the default (see
   [Hiding apps and inputs](#hiding-apps-and-inputs)).
-- **Shortcuts** after the inputs: *Apps*, *Inputs* and *System*; *Close background apps*
-  is off by default (turn it on in *Launcher settings → Shortcuts*) and sits
-  first when on. *Memory freeing action* chooses between closing apps
-  immediately (`closeAllApps`) and opening LG's Memory Optimizer.
-  Closing apps may also close Homebar; press HOME to open it again. The tile's
+- **Shortcuts** after the inputs: *Apps*, *Inputs* and *System*; *Free up memory*
+  is off by default (turn it on in *Launcher settings → Home row → Shortcuts*) and sits
+  first when on. The *Free up memory* setting chooses between closing the apps
+  in the background and opening LG's Memory Optimizer, one or the other.
+  Closing closes the apps you opened that are not on screen, one by one; the
+  app on screen, Homebar and LG's own apps stay, so the picture stays as it is
+  and a notice says whether anything was running. The tile's
   name follows that choice. Opening LG's screen does not press *Start*;
   on the tested webOS 25 that button closes recent application windows.
   A shortcut is edited like a
@@ -75,7 +78,7 @@ The focused item's name shows above the row, and the hints under it say what
 OK and the other keys do, the remote's colour keys in their own colour
 (YELLOW does what holding OK does, except in *Apps*, where it adds or removes
 the favourite and holding OK opens the app's menu; RED hides an app in *Apps*). The chip in the top-right corner shows what is on
-screen, the [weather](#weather) and the time; each of the three can be hidden. HOME pressed again closes the panel too (on the Home panel the remote sends it to Homebar as a key; on the overlay HOME toggles it). BACK closes the panel; from *Apps* or *System* it goes
+screen, the [weather](#weather) and the time; each of the three can be hidden. HOME pressed again closes the panel too (on the Home panel the remote sends it to Homebar as a key; on the overlay HOME toggles it). With the Magic Remote pointer, a click anywhere that is not a tile closes it as well, on Home, *Apps*, *Inputs* and *System* (not in the settings menu, while a tile is edited or with a question on screen), as LG's own input list closes on a click above it. BACK closes the panel; from *Apps* or *System* it goes
 back to Home. The panel fits the TV's screen, HD or FHD/UHD, at the same
 proportions. Each input fits its own label or CEC name and optional second
 line, with padding, up to 200 px at FHD. Short names keep their pills narrow.
@@ -207,32 +210,36 @@ at *Larger* and the 12-hour clock:
 | About | About Homebar | The version, a code to [buy me a coffee](https://buymeacoffee.com/rawin) and where the source is. The menu opens here |
 | Look | Language | *System language* (the TV's menu language, when it is one of the [languages](#languages)), or one of them by hand |
 | | Theme | Default or one of eight two-colour themes, see [Themes](themes.md) |
-| | Text size | Normal, Large or Larger: the names, hints, labels and the menu grow; the tiles and pills keep their size, so the row still fits |
+| | Text size | Normal, Large or Larger: the names, hints, labels and the menu grow; the tiles and pills keep their size (see *Tile size*), so the row still fits |
+| | Tile size | *Large* (default, the full tile), *Medium*, or *Small*: as tall as the input pills and shortcuts, so the Home row is level. It sets the first group of the Home row (the favourites, or the inputs with *Row order* set to *Inputs, then favourites*), the icons in *All applications* (smaller icons, more columns) and the tiles on the *System* page. On Home the first group still gets smaller when the rest of the row leaves too little room |
 | | Animations | On or off |
-| Home row | Inputs and TV | A box for *TV*, each input the TV has and each USB drive plugged in, in their row order: OK takes the chosen one off the Home row or puts it back. HDMI is on the row by default, the rest is off |
-| | Input appearance | *Icon only*, *Icon + port*, *Icon + label*, *Icon + CEC*, or the existing text arrangements: *Label only*, *Port only*, *CEC only*, *Label, then port*, *Port, then label*, and the same pairs for the device's HDMI-CEC name (*CEC, then port*, *Port, then CEC*): what a pill shows of the port (`HDMI 2`, `AV 1`, `USB 1`), the name set on the TV for that input and the CEC name. The label modes fall back to the CEC name when no label is set, and the other way round. A pill drawn with the choice appears below the values. Missing label/CEC names fall back as before. Icons are chosen per input in its edit mode |
-| | Input name above favourites | Port (default), Label or CEC; independent of the tile appearance, with the same fallback for missing names |
-| | Long input names | *Ellipsis* (default) or *Scroll*: a name wider than the 200 px a pill can take either ends in "…", or, while that tile is focused, scrolls slowly to its end and back |
+| Home row | Row order | *Favourites, then inputs* (default) or *Inputs, then favourites*. The shortcuts stay last either way. The first group takes the *Tile size*; the second is as tall as the input pills and shortcuts. So with the inputs first the pills and *TV* grow to that size (as far as the row has room) and the favourites are small. Home then opens on the input on screen (the first tile when an app is on screen), as a source button would |
+| | Inputs and TV | A box for *TV*, each input the TV has and each USB drive plugged in, in their row order: OK takes the chosen one off the Home row or puts it back. HDMI is on the row by default, the rest is off |
 | | Shortcuts | A box for *Free up memory* (off by default) and for the *Apps* and *Inputs* shortcuts: the same, for the tiles after the inputs |
-| | Memory freeing action | *Close background apps* (default) or *Open LG Memory Optimizer*. The first closes apps immediately; the second opens LG's optimiser screen and leaves *Start* to you. The shortcut's title follows the chosen action. The optimiser option is offered only when the TV's LG Settings includes that screen |
-| | After holding BACK | Compatibility overlay and System HOME: the last input, TV, any physical input (including hidden ones), or *Do nothing* (Homebar leaves the TV to LG). In System HOME this applies when an app leaves no full-screen card; ordinary HOME over a playing app does not switch inputs. Additional overlay and the older Home panel leave returns to LG |
+| | Free up memory | *Close background apps* (default) or *Open LG Memory Optimizer*. The first closes the apps running in the background (not the one on screen); the second opens LG's optimiser screen and leaves *Start* to you. The shortcut's title follows the chosen action. The optimiser option is offered only when the TV's LG Settings includes that screen. Shown only while the *Free up memory* shortcut is on and the TV has both ways |
+| Inputs | Input appearance | *Icon only*, *Icon + port*, *Icon + label*, *Icon + CEC*, or the existing text arrangements: *Label only*, *Port only*, *CEC only*, *Label, then port*, *Port, then label*, and the same pairs for the device's HDMI-CEC name (*CEC, then port*, *Port, then CEC*): what a pill shows of the port (`HDMI 2`, `AV 1`, `USB 1`), the name set on the TV for that input and the CEC name. The label modes fall back to the CEC name when no label is set, and the other way round. A pill drawn with the choice appears below the values. Missing label/CEC names fall back as before. Icons are chosen per input in its edit mode |
+| | Input heading | Port (default), Label or CEC; independent of the tile appearance, with the same fallback for missing names. Shown only while *Heading* is shown |
+| | Long input names | *Ellipsis* (default) or *Scroll*: a name wider than the 200 px a pill can take either ends in "…", or, while that tile is focused, scrolls slowly to its end and back |
+| On screen | Heading | Whether the big name of the focused item shows on Home and in *Apps* (System always shows it) |
+| | Key hints | The keys and what they do, on the bottom line: shown or hidden (the settings menu and editing favourites keep theirs) |
+| | Hide after | *Never* by default, or 3–60 seconds. The panel closes after that much inactivity outside Launcher settings; a key, click, wheel scroll or actual Magic Remote pointer movement starts the count again. Then the remote's keys go to what is on screen again. With the overlay the pointer stays visible when the panel hides |
 | Apps | Apps order | The TV's order, A to Z, or the most used first |
 | | Hidden apps | Hidden, or shown dimmed in *Apps* (to bring one back with RED) |
 | Top bar | Items | A box for the clock, the app on screen and the weather: OK shows the chosen one in the chip or hides it. Three more boxes, **off by default**, add the TV's load to the chip: *Processor* (`CPU 22%`), *Memory* (`RAM 60%`, memory in use, caches not counted) and *Network* (`↓ 35 kB/s  ↑ 5.1 MB/s`, the current rates on the real interfaces). They refresh every two seconds while Home is up, and nothing is read while they are off |
 | | Clock format | 24-hour (16:05) or 12-hour (4:05 PM); the backup's time follows it |
-| | Weather place | The place of the weather; a code on the right opens a page on a phone to choose it |
-| | Temperature | *Automatic* (°F when the TV's language is set for the United States, else °C), Celsius or Fahrenheit |
-| | Temperature shown | *Standard temperature* from Open-Meteo, or *Feels like* (`apparent_temperature`, its equivalent of RealFeel) |
-| On screen | App name above favourites | Whether the big name of the focused item shows on Home and in *Apps* (System always shows it) |
-| | Key hints | The keys and what they do, on the bottom line: shown or hidden (the settings menu and editing favourites keep theirs) |
-| | Homebar timeout | *Off* by default, or 3–60 seconds. The panel closes after that much inactivity outside Launcher settings; a key, click, wheel scroll or actual Magic Remote pointer movement starts the count again. Then the remote's keys go to what is on screen again. With the overlay the pointer stays visible when the panel hides |
+| | Weather place | The place of the weather; a code on the right opens a page on a phone to choose it. This and the two below show only while the weather is on in *Items* |
+| | Temperature unit | *Automatic* (°F when the TV's language is set for the United States, else °C), Celsius or Fahrenheit |
+| | Temperature | *Actual* temperature from Open-Meteo, or *Feels like* (`apparent_temperature`, its equivalent of RealFeel) |
+| Remote | After holding BACK | Compatibility overlay and System HOME: the last input, TV, any physical input (including hidden ones), or *Do nothing* (Homebar leaves the TV to LG). In System HOME this applies when an app leaves no full-screen card; ordinary HOME over a playing app does not switch inputs. Additional overlay and the older Home panel leave returns to LG |
+| | Remote button | The remote button that opens Homebar besides HOME, set in Input Hook or Magic Mapper for you; overlay modes only, see [Remote button](#remote-button-overlay-modes) |
 | Backup | Back up favourites and settings | OK writes everything the launcher keeps to a file next to it; the status says when the last backup was made, see [Backup](#backup) |
 | | Restore from the backup | OK brings that file back |
-| Updates | Updates | The installed version; OK checks, downloads and installs a new release, see [Update](install.md#update). The launcher also looks once a day, the first time Home opens, and shows a dot on *System* and *Launcher settings* when a new version is there |
+| Updates | Check for updates | The installed version; OK checks, downloads and installs a new release, see [Update](install.md#update). The launcher also looks once a day, the first time Home opens, and shows a dot on *System* and *Launcher settings* when a new version is there |
 | | Test builds | Also offer pre-releases as updates |
-| Help | Remote button | The remote button that opens Homebar besides HOME, set in Input Hook or Magic Mapper for you; overlay modes only, see [Remote button](#remote-button-overlay-modes) |
-| Help | Launch method | *System HOME (native)* or *Additional overlay*, with what the focused one does, the launch checks and a Yes/No popup before anything changes; shown on overlay builds, see [Launch method](#launch-method-overlay-builds) |
+| Advanced | Launch method | *System HOME (native)* or *Additional overlay*, with what the focused one does, the launch checks and a Yes/No popup before anything changes; shown on overlay builds, see [Launch method](#launch-method-overlay-builds) |
 | | Restart Homebar | Restarts the Homebar process and opens it again. Use it when the panel stops responding; favourites and settings stay saved |
+
+A setting that changes nothing as things stand is left out of the menu until it would; the focus stays on the setting it was on when rows come or go.
 
 Up to 0.14 one setting, *Clock bar*, showed or hid the whole chip. When it
 was hidden, the clock, the app and the weather start hidden too.
@@ -325,7 +332,7 @@ Portuguese falls back to Portuguese first. Corrections and new languages are wel
 
 ## Launch method (overlay builds)
 
-**Launcher settings → Help → Launch method** lists the two ways to open Homebar,
+**Launcher settings → Advanced → Launch method** lists the two ways to open Homebar,
 with what the focused one does under the list, and the current launch checks:
 
 - **System HOME (native)** makes Homebar the TV's HOME screen. HOME opens it
@@ -386,7 +393,7 @@ local fixtures do not establish full hardware compatibility.
 
 ## Remote button (overlay modes)
 
-**Launcher settings → Help → Remote button** puts Homebar on a button of your
+**Launcher settings → Remote → Remote button** puts Homebar on a button of your
 remote besides HOME, in Input Hook or Magic Mapper, so you do not have to edit
 their files. It is there in the additional overlay and with HOME via mapper; with
 System HOME, HOME already opens Homebar.

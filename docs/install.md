@@ -165,7 +165,7 @@ sh install.sh --probe                # read-only capabilities and launch checks
 ```
 
 Existing installations retain their mode. Legacy users on supported TVs receive
-an offer under **Launcher settings → Help → Launch method**. Applying it is an
+an offer under **Launcher settings → Advanced → Launch method**. Applying it is an
 explicit change, not a silent update migration. An unknown or conflicting HOME
 rule must be resolved first, or use the additional overlay instead.
 
@@ -189,7 +189,7 @@ far; reports are welcome.
 ### Mapping a button to Homebar
 
 In the additional overlay Homebar opens from its **app tile** with nothing
-set up. For a button, *Launcher settings → Help → Remote button* asks you to
+set up. For a button, *Launcher settings → Remote → Remote button* asks you to
 press it twice and writes the rule to Input Hook or Magic Mapper
 ([details](using.md#remote-button-overlay-modes)). By hand, make the mapper
 *launch the app* `org.rawin.launcher` (the name Homebar's app has; not "Homebar"):
@@ -246,7 +246,7 @@ ssh root@<tv-ip> cat /tmp/homebar-native-trial.txt > homebar-native-trial.txt
 and attach it to a [GitHub issue](https://github.com/rawinek/webos-homebar/issues)
 together with the TV model, the webOS version (*Settings → General → About*)
 and what you saw when pressing HOME (Homebar, LG Home, a black screen, nothing).
-While the trial is on, *Launcher settings → Launch method* shows that it is
+While the trial is on, *Launcher settings → Advanced → Launch method* shows that it is
 experimental and offers both modes, so you can switch back to *Additional
 overlay* there. Uninstalling (`sh /var/lib/webosbrew/rawin-launcher-home/uninstall.sh`)
 gives LG Home back. webOS 5 and older are not covered.

@@ -98,9 +98,11 @@ FocusScope {
         // Measure the rail instead, so the popup never caches a screen-centre
         // fallback and follows row layout changes and the rail's own scale.
         if (!iconSource) return margin;
-        var currentWidth = iconSource.kind === "tv" ? sourceTileWidth : pillWidthFor(iconSource, titleTwins.rev);
-        var prefixWidth = sourcesWidthFor(sources.slice(0, editSourceIndex+1), titleTwins.rev);
-        return rail.x + (sourceRow.x + prefixWidth-currentWidth/2)*rail.scale;
+        var currentWidth = Math.round((iconSource.kind === "tv" ? tvTileSize : pillWidthFor(iconSource, titleTwins.rev))*sourceZoom);
+        var prefixWidth = scaledSourcesWidth(sources.slice(0, editSourceIndex+1), titleTwins.rev);
+        // The sources sit in one of the rail's first two places (row order).
+        var rowX = sourceRow.parent ? sourceRow.parent.x : 0;
+        return rail.x + (rowX + prefixWidth-currentWidth/2)*rail.scale;
     }
     // System can be moved among the shortcuts but never removed.
     property int editActionIndex: -1
@@ -115,7 +117,18 @@ FocusScope {
         return "";
     }
     onRemovalKeyChanged: pendingRemoval = ""
-    onSelectedChanged: pendingRemoval = ""
+    onSelectedChanged: { pendingRemoval = ""; if (!focusingInput) inputFocusPending = false; noteMenuKey(); }
+    // Rows of the settings menu come and go (groupsFor: with some settings,
+    // with the launch method's state): the menu keeps the focus on the same
+    // setting, wherever it is now, instead of on whatever moved into its place.
+    property string menuKey: ""
+    property bool restoringMenuKey: false
+    function noteMenuKey() { if (page === "settings" && !restoringMenuKey && settingKeys[selected]) menuKey = settingKeys[selected]; }
+    onSettingKeysChanged: {
+        var at = settingKeys.indexOf(menuKey);
+        if (page !== "settings" || at < 0 || at === selected) return;
+        restoringMenuKey = true; selected = at; restoringMenuKey = false;
+    }
     function requestRemoval() {
         if (!removalKey) return;
         if (pendingRemoval !== removalKey) { pendingRemoval = removalKey; return; }
@@ -143,6 +156,19 @@ FocusScope {
     readonly property var allSources: allSourcesFor(allInputs.concat(usbDrives), hiddenInputs, shownInputs, settings)
     readonly property var sources: allSources.filter(function(s) { return !s.hidden; })
     readonly property int sourceCount: sources.length
+    // The order of the Home row (setting rowOrder, issue #21): favourites,
+    // then Live TV and the inputs, or the inputs first. The shortcuts stay
+    // last either way, so System keeps its place at the end. The row is one
+    // list of places (selected); these say where each group starts in it and
+    // which place of its group an index is, -1 outside the group.
+    readonly property bool inputsFirst: settings.rowOrder === "inputs"
+    readonly property int favStart: inputsFirst ? sourceCount : 0
+    readonly property int sourceStart: inputsFirst ? 0 : favSlots
+    readonly property int actionStart: favSlots + sourceCount
+    function favAt(index) { return index >= favStart && index < favStart + favCount ? index - favStart : -1; }
+    function sourceAt(index) { return index >= sourceStart && index < sourceStart + sourceCount ? index - sourceStart : -1; }
+    function actionAt(index) { return index >= actionStart && index < actionStart + homeActions.length ? index - actionStart : -1; }
+    function isAddTile(index) { return showAddTile && index === favStart; }
     readonly property var inputs: allInputs.filter(function(d) { return hiddenInputs.indexOf(d.id) < 0; })
     // Preview a physical input, including a hidden one if none is on the row.
     // TV has its own appearance and its default text has no image asset.
@@ -156,14 +182,32 @@ FocusScope {
     property var nowTime: new Date()
     readonly property string clock: Qt.formatTime(nowTime, settings.hours === "12" ? "h:mm AP" : "hh:mm")
     property string nowTitle: ""
+    // The app or input on screen, as an app id ("com.webos.app.hdmi2").
+    property string nowId: ""
+    // With the inputs first, Home opens on the input on screen, as a source
+    // button would: at once from what was on screen last time, then again
+    // when the TV says what is there, unless the focus has been moved since.
+    property bool inputFocusPending: false
+    property bool focusingInput: false
+    function focusCurrentInput() {
+        if (!inputFocusPending || !inputsFirst || page !== "home") return;
+        for (var i=0; i<sources.length; i++) {
+            if ((sources[i].kind === "tv" ? "com.webos.app.livetv" : sources[i].id) !== nowId) continue;
+            focusingInput = true; selected = sourceStart + i; focusingInput = false;
+            return;
+        }
+    }
     // Launcher settings, saved with the favourites (key "settings").
     // lang: "system" or a code from Strings.languages; theme: an id from
     // Themes.ids; size: the text size; motion: animations; sort: the Apps
     // order; tv: Live TV on the rail; sourceOrder: the order of Live TV and
     // the inputs on the rail; inputText: what an input's pill shows ("hdmiLabel"
     // is "HDMI 2" over the label, "label", "hdmi" or "labelHdmi");
-    // inputHeading: "hdmi", "label" or "cec" for the name above favourites;
+    // inputHeading: "hdmi", "label" or "cec" for an input's heading (the big name above the row);
     // inputOverflow: "ellipsis" or "scroll" for a name wider than the pill;
+    // rowOrder: "favourites" (favourites, then the inputs) or "inputs";
+    // favSize: "large", "medium" or "small", the icons of the row's first
+    // group, of All applications and of System;
     // showHidden: hidden apps shown dimmed; exitTo
     // (overlay only, sent to the helper): "last"
     // or an input app id; clock, nowApp and weather: what the chip at the top
@@ -267,7 +311,7 @@ FocusScope {
     // The app being uninstalled; it is done when it leaves the TV's list.
     property string uninstallId: ""
     property string uninstallTitle: ""
-    readonly property var settingGroups: groupsFor(Config.exitTarget, modeInfo.available, modeInfo.available && modeInfo.current !== "native")
+    readonly property var settingGroups: groupsFor(Config.exitTarget, modeInfo.available, modeInfo.available && modeInfo.current !== "native", settings, memoryOptimizerAvailable)
     readonly property var settingKeys: keysOf(settingGroups)
     readonly property var menuRows: rowsOf(settingGroups, lang)
     readonly property var settingsItems: settingKeys.map(function(k) { return settingFor(k); })
@@ -337,6 +381,9 @@ FocusScope {
     // its colour lights the bottom-left edge, the picture stays visible.
     // Colours come from the theme (Launcher settings → Theme, see Themes.js).
     readonly property var theme: Themes.palette(settings.theme)
+    // AMOLED: black and white only, so no coloured glow, app icons in greys
+    // and the colour keys in the hints as white badges.
+    readonly property bool mono: theme.mono === true
     readonly property string ink: theme.ink
     readonly property string ink2: theme.ink2
     readonly property string ink3: theme.ink3
@@ -363,7 +410,7 @@ FocusScope {
     readonly property int margin: px(96)
     readonly property int tile: px(120)
     readonly property int gap: px(24)
-    readonly property int appColumns: Math.max(4, Math.floor((width - 2*margin + gap) / (tile + gap)))
+    readonly property int appColumns: Math.max(4, Math.floor((width - 2*margin + gap) / (appIconSize + gap)))
     readonly property int railY: height - px(192)
     // The Home rail reserves room for inputs and shortcuts first. Every input
     // pill fits its own two lines up to 200 px; favourites then take what
@@ -375,8 +422,17 @@ FocusScope {
     readonly property int sourceMinWidth: px(64)
     // Live TV is a tile as big as a shortcut, not a pill: "TV" needs no width.
     readonly property int sourceTileWidth: px(64)
+    // As tall as the pills beside it (taller than 64 px with a larger text).
+    readonly property int tvTileSize: Math.max(sourceTileWidth, sourceBaseHeight)
     readonly property int sourcePills: sources.filter(function(s) { return s.kind !== "tv"; }).length
-    readonly property int sourcesWidth: sourcesWidthFor(sources, titleTwins.rev)
+    // The sources' width at their own size, and as drawn on Home: with the
+    // inputs first they grow by sourceZoom (below), the gaps between them do not.
+    readonly property int sourcesBaseWidth: sourcesWidthFor(sources, titleTwins.rev)
+    readonly property int sourcesWidth: scaledSourcesWidth(sources, titleTwins.rev)
+    function scaledSourcesWidth(list, rev) {
+        var gaps = Math.max(0, list.length-1)*sourceGap;
+        return Math.round((sourcesWidthFor(list, rev) - gaps)*sourceZoom) + gaps;
+    }
     readonly property int actionWidth: homeActions.length > 0 ? homeActions.length*px(64) + Math.max(0, homeActions.length-1)*sourceGap : 0
     readonly property int railGroups: (favSlots > 0 ? 1 : 0) + (sourceCount > 0 ? 1 : 0) + (homeActions.length > 0 ? 1 : 0)
     function pillWidthFor(source, rev) {
@@ -391,11 +447,58 @@ FocusScope {
     function sourcesWidthFor(list, rev) {
         var total = Math.max(0, list.length-1)*sourceGap;
         for (var i=0; i<list.length; i++)
-            total += list[i].kind === "tv" ? sourceTileWidth : pillWidthFor(list[i], rev);
+            total += list[i].kind === "tv" ? tvTileSize : pillWidthFor(list[i], rev);
         return total;
     }
-    readonly property int favouriteRoom: width - 2*margin - actionWidth - sourcesWidth - Math.max(0, railGroups-1)*railGroupGap
-    readonly property int favouriteTile: favSlots > 0 ? Math.max(px(48), Math.min(tile, Math.floor((favouriteRoom + gap) / favSlots) - gap)) : tile
+    readonly property int railRoom: width - 2*margin - actionWidth - Math.max(0, railGroups-1)*railGroupGap
+    readonly property int favouriteRoom: railRoom - sourcesWidth
+    // How tall the pills are at their own size: 64 px, more with a larger
+    // text size (two lines need the room). Measured on the twins, never on
+    // the pills themselves, which grow from it (no binding loop).
+    readonly property int sourceBaseHeight: sourceHeightFor(sources, titleTwins.rev)
+    function sourceHeightFor(list, rev) {
+        var h = px(64);
+        for (var i=0; i<sourceTwins.count; i++) {
+            var twin = sourceTwins.itemAt(i);
+            if (!twin || inputIconOnly) continue;
+            for (var j=0; j<list.length; j++) if (list[j].kind !== "tv" && list[j].id === twin.sourceId) h = Math.max(h, twin.pillHeight);
+        }
+        return h;
+    }
+    // The setting "favSize" (App and settings icon size): "large" is the full
+    // tile (as before the setting), "small" as tall as the pills and the
+    // shortcuts (iconLevel), "medium" halfway. It sizes the first group of
+    // the Home row, the All applications grid and the System page.
+    readonly property int iconLevel: Math.min(tile, Math.max(px(64), sourceBaseHeight))
+    readonly property int iconWanted: settings.favSize === "small" ? iconLevel : settings.favSize === "medium" ? Math.round((tile + iconLevel)/2) : tile
+    readonly property int appIconSize: iconWanted
+    // All applications keeps its bottom edge: smaller tiles lower its top.
+    readonly property int appDrop: 2*(tile - appIconSize)
+    // The first group of the row takes the chosen size and the second is as
+    // tall as the pills. Favourites first (the default): the favourites are
+    // iconWanted, the sources stay as they are. Inputs first: the sources
+    // grow to iconWanted (sourceZoom) and the favourites are iconLevel. Both
+    // give way when the row runs out of room: the first group shrinks first,
+    // down to the second's size, then the favourites down to 48 px, and only
+    // then the whole rail (its scale).
+    readonly property int favsAtLevel: favSlots > 0 ? favSlots*(iconLevel + gap) - gap : 0
+    readonly property real sourceZoomFit: sourcesBaseWidth - Math.max(0, sourceCount-1)*sourceGap > 0
+        ? (railRoom - favsAtLevel - Math.max(0, sourceCount-1)*sourceGap) / (sourcesBaseWidth - Math.max(0, sourceCount-1)*sourceGap) : 1
+    readonly property real sourceZoom: inputsFirst && sourceCount > 0 ? Math.max(1, Math.min(iconWanted / sourceBaseHeight, sourceZoomFit)) : 1
+    // With the inputs first but none on the row the favourites are the
+    // first group, so they take the chosen size.
+    readonly property int favouriteMax: inputsFirst && sourceCount > 0 ? iconLevel : iconWanted
+    readonly property int favouriteTile: favSlots > 0 ? Math.max(px(48), Math.min(favouriteMax, Math.floor((favouriteRoom + gap) / favSlots) - gap)) : favouriteMax
+    // A square tile's rounding for its size: 30 at a full 120 px tile, the
+    // pills' 18 at 64 px, in proportion between, and below that the same
+    // share of the side, so a small tile stays a rounded square instead of
+    // turning into a circle. Rail tiles as tall as the pills (onRail) take
+    // the pills' rounding exactly.
+    function tileCorner(size, onRail) {
+        if (onRail && size <= iconLevel) return px(18);
+        if (size >= px(64)) return Math.min(px(30), Math.round(px(18) + (size - px(64))*12/56));
+        return Math.round(size*18/64);
+    }
     readonly property int favsWidth: favSlots > 0 ? favSlots*(favouriteTile + gap) - gap : 0
     // The name sits just above the tiles; a line under it (editing help, a
     // message) lifts it by one line. Without the name (setting "title",
@@ -405,13 +508,23 @@ FocusScope {
     // the right) their top edge moves down: the name follows by that much and
     // keeps the same distance to the icons.
     readonly property bool showTitle: settings.title !== false || page === "system"
-    readonly property int favouriteLift: page === "home" ? Math.round((tile - favouriteTile)/2) : 0
-    readonly property int heroBaseline: height - (page === "apps" ? px(380) : px(238) - favouriteLift) - (showTitle ? (hero.sub ? pt(36) : 0) : px(20))
+    readonly property int railContent: Math.max(favSlots > 0 ? favouriteTile : 0, sourceCount > 0 ? Math.round(sourceBaseHeight*sourceZoom) : 0, px(64))
+    // While a tile is edited its arrows stand 40 px above it, where a lowered
+    // name and its help line would run into them: the name stays up then,
+    // and over a tile taller than 64 px (a grown pill, a small favourite with
+    // its arrows above) it goes up by as much as the arrows need.
+    readonly property bool railEditing: editIndex >= 0 || editSourceIndex >= 0 || editActionIndex >= 0
+    readonly property int editedHeight: editSourceIndex >= 0 && sources[editSourceIndex]
+        ? Math.round((sources[editSourceIndex].kind === "tv" ? tvTileSize : sourceBaseHeight)*sourceZoom)
+        : editIndex >= 0 ? (favouriteTile > 90*u ? 0 : favouriteTile) : px(64)
+    readonly property int editRaise: Math.max(0, px(28) - Math.round((tile - editedHeight)/2))
+    readonly property int favouriteLift: page === "home" ? (railEditing ? -editRaise : Math.round((tile - railContent)/2)) : page === "system" ? Math.round((tile - appIconSize)/2) : 0
+    readonly property int heroBaseline: height - (page === "apps" ? px(380) - appDrop : px(238) - favouriteLift) - (showTitle ? (hero.sub ? pt(36) : 0) : px(20))
     readonly property var hero: heroFor(page, selected, apps, favourites, editIndex, launching, message, notice, tools, sources, iconColors)
     readonly property var hints: hintsFor(page, selected, favouriteKeys, editIndex, lang, updateInfo, pane, valueIndex, hiddenInputs)
     // The remote's colour keys, as the hints show them (the same in every theme).
-    readonly property color keyRed: "#d83a3f"
-    readonly property color keyYellow: "#f2c230"
+    readonly property color keyRed: mono ? "#ffffff" : "#d83a3f"
+    readonly property color keyYellow: mono ? "#ffffff" : "#f2c230"
     property color glowColor: hero.color
     Behavior on glowColor { ColorAnimation { duration: shell.dur(300) } }
 
@@ -420,6 +533,10 @@ FocusScope {
     // BACK differently as System HOME on webOS 11 (webos10/app/main.qml).
     property string closeReason: ""
     function closeHome(reason) { closeReason = reason || "back"; closeRequested(); }
+    function backgroundClosable() {
+        return foreground && ready && page !== "settings" && !launching && !railEditing && !editInputIcon && pendingRemoval === ""
+            && appStep === "" && buttonStep === "" && modeConfirm === "";
+    }
     // The timeout deliberately counts only actual input. Qt can send hover
     // events for a pointer that has not moved, so pointerMoved() calls this
     // only after its coordinate check; keys, clicks and wheel scrolls call it
@@ -562,19 +679,28 @@ FocusScope {
     // The settings menu's groups: a name and the settings in it. About comes
     // first, so it is what the menu opens on. The BACK-hold target is the
     // overlay's alone, and so is the remote button, outside System HOME.
-    function groupsFor(exitTarget, modes, button) {
-        return [
+    // A setting that changes nothing as things stand is left out until it
+    // would: the input heading while no heading shows, the memory action
+    // without its shortcut (or with only one way to free memory), the
+    // weather's place and units without the weather. A group left empty
+    // has no header.
+    function groupsFor(exitTarget, modes, button, s, memory) {
+        var weather = s.weather !== false;
+        var groups = [
             {title: "grp_about", keys: ["about"]},
-            {title: "grp_look", keys: ["lang", "theme", "size", "motion"]},
+            {title: "grp_look", keys: ["lang", "theme", "size", "favSize", "motion"]},
             // Live TV is switched with the inputs, so the row stays one list.
-            {title: "grp_home", keys: exitTarget ? ["sources", "inputText", "inputHeading", "inputOverflow", "homeShortcuts", "closeAppsMode", "exitTo"] : ["sources", "inputText", "inputHeading", "inputOverflow", "homeShortcuts", "closeAppsMode"]},
-            {title: "grp_apps", keys: ["sort", "showHidden"]},
-            {title: "grp_bar", keys: ["topBar", "hours", "place", "units", "temperature"]},
+            {title: "grp_home", keys: ["rowOrder", "sources", "homeShortcuts"].concat(s.homeCloseApps === true && memory ? ["closeAppsMode"] : [])},
+            {title: "grp_inputs", keys: ["inputText"].concat(s.title !== false ? ["inputHeading"] : []).concat(["inputOverflow"])},
             {title: "grp_screen", keys: ["title", "hints", "timeout"]},
+            {title: "grp_apps", keys: ["sort", "showHidden"]},
+            {title: "grp_bar", keys: ["topBar", "hours"].concat(weather ? ["place", "units", "temperature"] : [])},
+            {title: "grp_remote", keys: (exitTarget ? ["exitTo"] : []).concat(modes && button ? ["button"] : [])},
             {title: "grp_backup", keys: ["backup", "restore"]},
             {title: "grp_updates", keys: ["update", "beta"]},
-            {title: "grp_support", keys: modes ? (button ? ["mode", "button", "restart"] : ["mode", "restart"]) : ["restart"]}
+            {title: "grp_support", keys: modes ? ["mode", "restart"] : ["restart"]}
         ];
+        return groups.filter(function(g) { return g.keys.length > 0; });
     }
     function keysOf(groups) {
         var out = [];
@@ -599,7 +725,7 @@ FocusScope {
                      restore: "set_restore", update: "set_update", beta: "set_beta",
                      place: "set_place", units: "set_units", temperature: "set_temperature", about: "set_about", hints: "set_hints",
                      mode: "set_mode", timeout: "set_timeout", restart: "set_restart_homebar",
-                     sources: "set_sources", inputText: "set_input_text", inputHeading: "set_input_heading", inputOverflow: "set_input_overflow", homeShortcuts: "set_home_shortcuts",
+                     sources: "set_sources", inputText: "set_input_text", inputHeading: "set_input_heading", inputOverflow: "set_input_overflow", homeShortcuts: "set_home_shortcuts", rowOrder: "set_row_order", favSize: "set_fav_size",
                      closeAppsMode: "set_close_apps_mode", button: "set_button",
                      topBar: "set_topbar"};
         var item = {key: key, title: t(names[key]), action: "setting", value: ""};
@@ -672,6 +798,10 @@ FocusScope {
                     {id: "cec", title: t("val_heading_cec")}];
         } else if (key === "inputOverflow") {
             list = [{id: "ellipsis", title: t("val_input_ellipsis")}, {id: "scroll", title: t("val_input_scroll")}];
+        } else if (key === "favSize") {
+            list = [{id: "large", title: t("val_fav_size_large")}, {id: "medium", title: t("val_fav_size_medium")}, {id: "small", title: t("val_fav_size_small")}];
+        } else if (key === "rowOrder") {
+            list = [{id: "favourites", title: t("val_row_favourites")}, {id: "inputs", title: t("val_row_inputs")}];
         } else if (key === "units") {
             list = [{id: "auto", title: Strings.format(t("val_units_auto"), {unit: /[-_]US$/i.test(systemLang) ? "°F" : "°C"})},
                     {id: "c", title: t("val_units_c")}, {id: "f", title: t("val_units_f")}];
@@ -820,6 +950,10 @@ FocusScope {
             // A name longer than a pill: end it with an ellipsis (as before)
             // or scroll it while the tile is focused.
             inputOverflow: s.inputOverflow === "scroll" ? "scroll" : "ellipsis",
+            // The Home row's order; no key keeps the favourites first.
+            rowOrder: s.rowOrder === "inputs" ? "inputs" : "favourites",
+            // The icon size; no key keeps the full tiles of before.
+            favSize: ["large", "medium", "small"].indexOf(s.favSize) >= 0 ? s.favSize : "large",
             inputIcons: DeviceIcons.assignments(s.inputIcons),
             tvIcon: DeviceIcons.tvIcon(s.tvIcon).id,
             homeCloseApps: s.homeCloseApps === true,
@@ -951,17 +1085,17 @@ FocusScope {
             h = {title: tool.title, sub: "", color: neutral};
         } else if (currentPage === "settings") {
             h = {title: "", sub: "", color: neutral};
-        } else if (showAddTile && index === 0) {
+        } else if (isAddTile(index)) {
             h = {title: t("add_favs_title"), sub: t("add_favs_sub"), color: neutral};
-        } else if (index < n) {
-            var f = favs[index];
+        } else if (favAt(index) >= 0 && favAt(index) < n) {
+            var f = favs[favAt(index)];
             h = {title: f.title, sub: editing >= 0 ? t("edit_sub") : "", color: styleFor(f.id).accent};
-        } else if (index < favSlots + sourceList.length) {
-            var source = sourceList[index - favSlots];
+        } else if (sourceAt(index) >= 0) {
+            var source = sourceList[sourceAt(index)];
             // The heading is independent of the tile, including icon-only inputs.
             h = {title: sourceHeading(source), sub: editSourceIndex >= 0 ? (editInputIcon ? "← → " + t("hint_input_icon") : t("edit_inputs_sub") + "   ▲ " + t("hint_input_icon")) : "", color: neutral};
         } else {
-            var action = homeActions[index - favSlots - sourceList.length] || {title: ""};
+            var action = homeActions[actionAt(index)] || {title: ""};
             // Under the name the same line as a favourite's while editing;
             // System only moves, so its line has no ▼.
             h = {title: action.title, sub: editActionIndex >= 0 ? (action.action === "system" ? t("edit_shortcuts_sub") : t("edit_shortcuts_remove_sub")) : "", color: neutral};
@@ -1021,14 +1155,14 @@ FocusScope {
             editHints.push(hint([ok], t("hint_done")));
             return editHints;
         }
-        if (index < keys.length) return [hint([ok], t("hint_open")), hint([hold, yellow], t("hint_edit_favs"))];
-        if (index < favSlots) return [hint([ok], t("hint_open"))];   // the "Add favourites" tile
+        if (favAt(index) >= 0 && favAt(index) < keys.length) return [hint([ok], t("hint_open")), hint([hold, yellow], t("hint_edit_favs"))];
+        if (isAddTile(index)) return [hint([ok], t("hint_open"))];   // the "Add favourites" tile
         // A source (Live TV, an input): opened with OK, edited exactly like a
         // favourite with hold OK or YELLOW.
-        if (index < favSlots + sourceCount)
+        if (sourceAt(index) >= 0)
             return [hint([ok], t("hint_open")), hint([hold, yellow], t("hint_edit_inputs"))];
         // A shortcut (Apps, System, the close-apps action), edited the same way.
-        var homeAction = homeActions[index - favSlots - sourceCount];
+        var homeAction = homeActions[actionAt(index)];
         var actionHints = homeAction && homeAction.action === "closeApps" && settings.closeAppsMode !== "memory" ? [hint([ok], t("hint_close"))] : [hint([ok], t("hint_open"))];
         actionHints.push(hint([hold, yellow], t("hint_edit_shortcuts")));
         return actionHints;
@@ -1070,7 +1204,7 @@ FocusScope {
         var ids = favouriteKeys.slice(0), id = ids[from];
         ids[from] = ids[to]; ids[to] = id;
         setFavourites(ids);
-        editIndex = to; selected = to;
+        editIndex = to; selected = favStart + to;
     }
     function moveSource(from, to) {
         pendingRemoval = "";
@@ -1082,7 +1216,7 @@ FocusScope {
         if (a < 0 || b < 0) return;
         order[a] = target.id; order[b] = moving.id;
         setSetting("sourceOrder", order);
-        editSourceIndex = to; selected = favSlots + to;
+        editSourceIndex = to; selected = sourceStart + to;
     }
     // DOWN on a source takes it off the row, as with a favourite and a
     // shortcut; the Inputs switches in Launcher settings turn it back on.
@@ -1103,7 +1237,7 @@ FocusScope {
         if (a < 0 || b < 0) return;
         order[a] = target.action; order[b] = moving.action;
         setSetting("homeActionOrder", order);
-        editActionIndex = to; selected = favSlots + sourceCount + to;
+        editActionIndex = to; selected = actionStart + to;
     }
     // DOWN on a shortcut hides it, as DOWN does with a favourite; Launcher
     // settings turns the optional ones back on. System is only ever moved.
@@ -1122,7 +1256,9 @@ FocusScope {
         ids.splice(index, 1);
         editIndex = -1;
         setFavourites(ids);
-        selected = Math.max(0, Math.min(index, ids.length-1));
+        // The favourite after it takes the focus (the one before, at the end);
+        // the place is counted from where the favourites start on the row.
+        selected = Math.max(0, Math.min(favStart + Math.max(0, Math.min(index, ids.length-1)), favSlots + sourceCount + homeActions.length - 1));
         notice = t("removed_fav");
     }
     // RED: hide an app from Apps (and drop it from the favourites), or show
@@ -1242,10 +1378,10 @@ FocusScope {
             // ▼ never removes a favourite while an input looks edited.
             var wasFavourite = editIndex;
             editIndex = -1; editSourceIndex = -1; editActionIndex = -1; editInputIcon = false; notice = "";
-            if (selected < favCount) editIndex = wasFavourite === selected ? -1 : selected;
-            else if (selected >= favSlots && selected < favSlots + sourceCount) editSourceIndex = selected - favSlots;
-            else if (selected >= favSlots + sourceCount && selected < favSlots + sourceCount + homeActions.length)
-                editActionIndex = selected - favSlots - sourceCount;
+            var fav = favAt(selected), source = sourceAt(selected), action = actionAt(selected);
+            if (fav >= 0) editIndex = wasFavourite === fav ? -1 : fav;
+            else if (source >= 0) editSourceIndex = source;
+            else if (action >= 0) editActionIndex = action;
         }
     }
     // The TV's inputs from eim getAllInputStatus: HDMI, and DisplayPort or
@@ -1305,6 +1441,7 @@ FocusScope {
     }
     function describe(appId) {
         if (!appId || appId === "com.webos.app.home") return false;
+        nowId = appId;
         for (var i=0; i<allInputs.length; i++) if (allInputs[i].id === appId) { nowTitle = inputTexts(allInputs[i]).primary; return true; }
         for (var j=0; j<applications.length; j++) if (applications[j].id === appId) { nowTitle = applications[j].title; return true; }
         nowTitle = appId === "com.webos.app.livetv" ? t("live_tv") : appId;
@@ -1513,10 +1650,10 @@ FocusScope {
         if (page === "system") return tools[index];
         if (page === "inputs") return allSources[index];
         if (page === "settings") return settingsItems[index];
-        if (showAddTile && index === 0) return addFavouritesTile;
-        if (index < favCount) return favourites[index];
-        if (index < favSlots + sourceCount) return sources[index - favSlots];
-        return homeActions[index - favSlots - sourceCount] || homeActions[homeActions.length-1];
+        if (isAddTile(index)) return addFavouritesTile;
+        if (favAt(index) >= 0) return favourites[favAt(index)];
+        if (sourceAt(index) >= 0) return sources[sourceAt(index)];
+        return homeActions[index - actionStart] || homeActions[homeActions.length-1];
     }
     // Favourites and settings, in one file next to the launcher on the TV.
     function backupData() {
@@ -1621,7 +1758,7 @@ FocusScope {
         } else if (isOk(key)) activate(itemAt(selected));
         else if (isBack(key)) {
             if (page === "home") closeHome();
-            else { selected = favSlots + sourceCount + homeActionIndex(page === "apps" || page === "inputs" ? page : "system"); page = "home"; }
+            else { selected = actionStart + homeActionIndex(page === "apps" || page === "inputs" ? page : "system"); page = "home"; }
         } else return false;
         return true;
     }
@@ -1642,8 +1779,7 @@ FocusScope {
     function holdable() {
         if (page === "apps" || page === "inputs") return true;
         if (page !== "home" || editIndex >= 0 || editSourceIndex >= 0 || editActionIndex >= 0) return false;
-        if (selected < favCount) return true;
-        return selected >= favSlots && selected < favSlots + sourceCount + homeActions.length;
+        return favAt(selected) >= 0 || sourceAt(selected) >= 0 || actionAt(selected) >= 0;
     }
     // The HOME button, pressed again while the panel is up, reaches it as
     // Qt.Key_Super_L (the first press only opens it: LG's Home is launched, no
@@ -1774,6 +1910,7 @@ FocusScope {
     onPageChanged: {
         pendingRemoval = "";
         if (page === "settings") { menuLoaded = true; inactivityTimer.stop(); } else noteActivity();
+        noteMenuKey();
     }
     onForegroundChanged: {
         if (foreground) noteActivity();
@@ -1790,6 +1927,7 @@ FocusScope {
         if (foreground) {
             foregroundSince = Date.now();
             launching = false; message = ""; page="home"; selected=0; pane=0; forceActiveFocus();
+            inputFocusPending = true; focusCurrentInput();
             tick();
             if (ready) { launchCheckRequested(); catalog.callService({}); foregroundInfo.callService({extraInfo: true}); loadInputs(); dailyUpdateCheck(); }
             loadWeather();
@@ -2044,18 +2182,38 @@ FocusScope {
         onCallFailure: { launching = false; launchTimeout.stop(); message = t("err_launch"); }
         onError: { launching = false; launchTimeout.stop(); message = t("err_unavailable"); }
     }
-    // LG may also close the process hosting Homebar, in either variant.
-    // The next HOME opens it again with the saved settings.
-    Service {
+    // Free up memory: the apps running in the background are closed one by
+    // one, those with a launch point (closeIds), never the one on screen,
+    // Homebar's helpers or LG's own. LG's closeAllApps closed LG Home with
+    // them, and the screen went black for a moment.
+    QtObject {
         id: closeAppsService
+        property var queue: []
+        property int closed: 0
+        function callService(p) { closed = 0; queue = []; runningService.callService({}); }
+        function next() {
+            if (queue.length === 0) { notice = t(closed > 0 ? "close_apps_done" : "close_apps_none"); catalog.callService({}); return; }
+            var id = queue[0]; queue = queue.slice(1);
+            closeOneService.callService({id: id});
+        }
+    }
+    Service {
+        id: runningService
         appId: "com.webos.app.home"
         service: "com.webos.applicationManager"
-        method: "closeAllApps"
-        onCallSuccess: {
-            notice = t("close_apps_done"); catalog.callService({});
-        }
+        method: "running"
+        onCallSuccess: { closeAppsService.queue = closeIds(response.running || [], nowId); closeAppsService.next(); }
         onCallFailure: { notice = t("close_apps_failed"); }
         onError: { notice = t("err_unavailable"); }
+    }
+    Service {
+        id: closeOneService
+        appId: "com.webos.app.home"
+        service: "com.webos.applicationManager"
+        method: "closeByAppId"
+        onCallSuccess: { closeAppsService.closed++; closeAppsService.next(); }
+        onCallFailure: closeAppsService.next()
+        onError: closeAppsService.next()
     }
     Service {
         id: catalog
@@ -2089,8 +2247,9 @@ FocusScope {
         onCallSuccess: {
             nowTitle = "";
             var list = response.foregroundAppInfo || [];
-            for (var i=0; i<list.length; i++) if (describe(list[i].appId)) return;
+            for (var i=0; i<list.length; i++) if (describe(list[i].appId)) { focusCurrentInput(); return; }
             describe(response.appId);
+            focusCurrentInput();
         }
     }
     // The TV's language, used while the launcher language is "system".
@@ -2203,6 +2362,20 @@ FocusScope {
     }
     Timer { id: launchTimeout; interval: 8000; onTriggered: { launching=false; message=t("err_slow"); } }
 
+    // Which running apps Free up memory closes: the apps a user opened (in
+    // the app list), except the one on screen and Homebar's own; LG's inputs,
+    // Home and settings are never in that list as apps to close.
+    function closeIds(running, onScreen) {
+        var known = {}, out = [], i;
+        for (i=0; i<applications.length; i++) known[applications[i].id] = true;
+        for (i=0; i<running.length; i++) {
+            var id = running[i] && running[i].id;
+            if (!id || !known[id] || id === onScreen || out.indexOf(id) >= 0) continue;
+            if (/^(org\.rawin\.launcher|org\.webosbrew\.(hbchannel|inputhook)$|com\.webos\.app\.(home|livetv|hdmi|dp|usbc|externalinput)|com\.palm\.app\.settings$)/.test(id)) continue;
+            out.push(id);
+        }
+        return out;
+    }
     // These are alternative actions: close apps now, or open LG's screen.
     // Opening the optimiser does not press its Start button.
     function runCloseApps() {
@@ -2270,12 +2443,14 @@ FocusScope {
             Behavior on height { NumberAnimation { duration: shell.dur(180); easing.type: Easing.OutCubic } }
             property color tint: shell.theme.scrim
             function a(v) { return Qt.rgba(tint.r, tint.g, tint.b, v); }
+            // AMOLED: the band under the name and the row is solid black.
+            readonly property bool solid: shell.mono
             gradient: Gradient {
-                GradientStop { position: 0.00; color: scrim.a(shell.page === "settings" ? 0.55 : 0) }
-                GradientStop { position: 0.22; color: scrim.a(shell.page === "settings" ? 0.65 : 0.30) }
-                GradientStop { position: 0.45; color: scrim.a(shell.page === "settings" ? 0.75 : 0.66) }
-                GradientStop { position: 0.68; color: scrim.a(0.86) }
-                GradientStop { position: 1.00; color: scrim.a(0.93) }
+                GradientStop { position: 0.00; color: scrim.a(shell.page === "settings" ? (scrim.solid ? 0.8 : 0.55) : 0) }
+                GradientStop { position: 0.22; color: scrim.a(shell.page === "settings" ? (scrim.solid ? 0.88 : 0.65) : scrim.solid ? 0.6 : 0.30) }
+                GradientStop { position: 0.45; color: scrim.a(shell.page === "settings" ? (scrim.solid ? 0.94 : 0.75) : scrim.solid ? 0.94 : 0.66) }
+                GradientStop { position: 0.68; color: scrim.a(scrim.solid ? 1 : 0.86) }
+                GradientStop { position: 1.00; color: scrim.a(scrim.solid ? 1 : 0.93) }
             }
         }
         // The glow in the bottom-left corner, in the colour of what is
@@ -2283,6 +2458,7 @@ FocusScope {
         // reaches: a full-screen one is the costliest thing a TV's GPU is
         // asked for here, and it is redrawn while the colour fades.
         RadialGradient {
+            visible: !shell.mono
             x: 0; y: parent.height - shell.px(455); width: shell.px(1400); height: shell.px(455)
             horizontalOffset: shell.px(192) - width/2; verticalOffset: shell.px(520) - height/2
             horizontalRadius: shell.px(1200); verticalRadius: shell.px(520)
@@ -2290,6 +2466,17 @@ FocusScope {
                 GradientStop { position: 0; color: Qt.rgba(shell.glowColor.r, shell.glowColor.g, shell.glowColor.b, 0.34) }
                 GradientStop { position: 0.72; color: Qt.rgba(shell.glowColor.r, shell.glowColor.g, shell.glowColor.b, 0) }
             }
+        }
+
+        // A click with the pointer where there is no tile closes Homebar, on
+        // every page but the settings menu, as LG's own input list closes on
+        // a click above it. Under everything else, so a tile, pill or button
+        // takes its own clicks; not while a tile is edited or a popup is up.
+        MouseArea {
+            id: backgroundPointer
+            anchors.fill: parent
+            enabled: shell.backgroundClosable()
+            onClicked: { shell.noteActivity(); if (shell.backgroundClosable()) shell.closeHome("pointer"); }
         }
 
         // Status: what is underneath, the weather, then the clock (each can be
@@ -2402,7 +2589,7 @@ FocusScope {
                                     Text {
                                         id: keyLabel; anchors.centerIn: parent; text: modelData.label
                                         font.family: shell.fontName; font.bold: true; font.pixelSize: shell.pt(12)
-                                        color: parent.colour === "red" ? "#ffffff" : parent.colour === "yellow" ? "#1d1a12" : shell.theme.keyLabel
+                                        color: parent.colour === "red" ? (shell.mono ? "#000000" : "#ffffff") : parent.colour === "yellow" ? (shell.mono ? "#000000" : "#1d1a12") : shell.theme.keyLabel
                                     }
                                 }
                             }
@@ -2421,9 +2608,9 @@ FocusScope {
                 property var entry
                 property int navIndex: 0
                 readonly property int size: parent && parent.tileSize ? parent.tileSize : shell.tile
-                readonly property int corner: shell.px(30)
+                readonly property int corner: shell.tileCorner(size, parent && parent.onRail === true)
                 property bool chosen: shell.selected === navIndex
-                readonly property bool editing: shell.page === "home" && shell.editIndex === navIndex
+                readonly property bool editing: shell.page === "home" && shell.editIndex >= 0 && shell.editIndex === navIndex - shell.favStart
                 readonly property bool starred: shell.page === "apps" && entry !== undefined && shell.favouriteKeys.indexOf(entry.id) >= 0
                 readonly property bool hidden: shell.page === "apps" && entry !== undefined && shell.hiddenIds.indexOf(entry.id) >= 0
                 width: size; height: size
@@ -2450,15 +2637,31 @@ FocusScope {
                     sourceSize.width: 2*cell.size; sourceSize.height: 2*cell.size
                 }
                 Rectangle { id: corners; anchors.fill: parent; radius: cell.corner; visible: false }
-                OpacityMask { anchors.fill: parent; source: icon; maskSource: corners; visible: icon.status === Image.Ready }
+                // AMOLED: the icon in greys, one pass over the tile only, and
+                // only while that theme is on.
+                Loader {
+                    id: grey; anchors.fill: parent; visible: false; active: shell.mono
+                    sourceComponent: Desaturate { source: icon; desaturation: 1 }
+                }
+                OpacityMask { anchors.fill: parent; source: shell.mono && grey.item ? grey.item : icon; maskSource: corners; visible: icon.status === Image.Ready }
                 // Edit handles sit on the tile edges, inside the gap to the neighbours.
+                // Beside a large tile; above a small one (inputs first), where
+                // they would cover most of the icon, as with a shortcut.
+                readonly property bool sideHandles: size > 90*shell.u
                 Repeater {
-                    model: cell.editing ? shell.moveHandles(shell.editIndex, shell.favCount) : []
+                    model: cell.editing && cell.sideHandles ? shell.moveHandles(shell.editIndex, shell.favCount) : []
                     Rectangle {
                         x: modelData === "‹" ? -shell.px(14) : cell.size-shell.px(14); anchors.verticalCenter: parent.verticalCenter
                         width: shell.px(28); height: shell.px(44); radius: shell.px(14); color: shell.theme.handle; border.width: Math.max(1, 2*shell.u); border.color: shell.warning
                         Text { anchors.centerIn: parent; anchors.verticalCenterOffset: -2*shell.u; text: modelData; font.family: shell.fontName; font.bold: true; font.pixelSize: shell.px(30); color: shell.warning }
                     }
+                }
+                Loader {
+                    visible: cell.editing && !cell.sideHandles; active: visible; sourceComponent: sourceEditControls
+                    width: shell.px(68); height: shell.px(28)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.bottom: parent.top; anchors.bottomMargin: shell.px(12)
+                    onLoaded: item.forFavourite = true
                 }
                 // Favourite marker in All applications.
                 Rectangle {
@@ -2492,9 +2695,9 @@ FocusScope {
                 readonly property int size: parent && parent.glyphSize ? parent.glyphSize : shell.px(88)
                 readonly property bool big: size > 100*shell.u
                 readonly property bool mid: size > 70*shell.u
-                readonly property int corner: big ? shell.px(30) : mid ? shell.px(24) : shell.px(18)
+                readonly property int corner: shell.tileCorner(size, parent && parent.onRail === true)
                 property bool chosen: shell.selected === navIndex
-                readonly property bool editing: shell.page === "home" && navIndex >= shell.favSlots + shell.sourceCount && shell.editActionIndex === navIndex - shell.favSlots - shell.sourceCount
+                readonly property bool editing: shell.page === "home" && shell.actionAt(navIndex) >= 0 && shell.editActionIndex === shell.actionAt(navIndex)
                 // A new version is there: a dot on the way to the updater.
                 readonly property bool badge: shell.updateAvailable && entry !== undefined && entry !== null &&
                     (entry.action === "system" || entry.action === "launcherSettings")
@@ -2560,11 +2763,19 @@ FocusScope {
                 property var entry
                 property int navIndex: 0
                 property bool chosen: shell.selected === navIndex
-                readonly property bool editing: shell.page === "home" && shell.editSourceIndex === navIndex - shell.favSlots
+                readonly property bool editing: shell.page === "home" && shell.editSourceIndex >= 0 && shell.editSourceIndex === navIndex - shell.sourceStart
                 property real lift: chosen ? -4*shell.u : 0
-                width: shell.pillWidthFor(pill.entry, titleTwins.rev)
-                readonly property int textCap: Math.max(shell.px(20), width - shell.px(44) - (shell.inputIconsVisible ? shell.px(44) : 0))
-                height: shell.inputIconOnly ? shell.sourceTileWidth : Math.max(shell.px(64), pillText.height + shell.px(20)); radius: shell.px(18)
+                // On Home, with the inputs first, the pill grows with its text
+                // and icon (sourceZoom); its edit controls keep their size.
+                readonly property real k: shell.page === "home" ? shell.sourceZoom : 1
+                function zoomed(v) { return Math.round(v*k); }
+                width: Math.round(shell.pillWidthFor(pill.entry, titleTwins.rev)*k)
+                // Text does not grow exactly with its font size (rounded sizes,
+                // hinting): a grown pill lends its text a little of the margin,
+                // so a name that fits at the pill's own size still fits.
+                readonly property int textCap: Math.max(shell.px(20), width - zoomed(shell.px(44)) - (shell.inputIconsVisible ? zoomed(shell.px(44)) : 0) + (k > 1 ? Math.round(width*0.06) : 0))
+                height: shell.inputIconOnly ? zoomed(shell.sourceTileWidth) : Math.max(zoomed(shell.px(64)), pillText.height + zoomed(shell.px(20)))
+                radius: k > 1 ? shell.tileCorner(height, false) : shell.px(18)
                 color: chosen ? shell.theme.focus : shell.chip
                 border.width: chosen ? 0 : 1; border.color: shell.chipEdge
                 // Nothing plugged in: the pill stays solid, its text dimmed.
@@ -2586,8 +2797,8 @@ FocusScope {
                     visible: shell.inputIconsVisible
                     iconId: shell.sourceIcon(pill.entry)
                     objectName: "deviceGlyph"
-                    width: shell.px(48); height: width
-                    x: shell.inputIconOnly ? (parent.width-width)/2 : shell.px(12); anchors.verticalCenter: parent.verticalCenter
+                    width: pill.zoomed(shell.px(48)); height: width
+                    x: shell.inputIconOnly ? (parent.width-width)/2 : pill.zoomed(shell.px(12)); anchors.verticalCenter: parent.verticalCenter
                     ink: pill.chosen ? shell.theme.onFocus : pill.dim ? shell.theme.dim : shell.ink
                 }
                 // UP opens the icon picker without changing the input's order.
@@ -2605,7 +2816,7 @@ FocusScope {
                     // port, its label, or both in the chosen order.
                     readonly property var texts: shell.inputTexts(pill.entry)
                     readonly property bool scrolls: shell.settings.inputOverflow === "scroll"
-                    anchors.centerIn: parent; anchors.horizontalCenterOffset: shell.inputIconsVisible ? shell.px(28) : 0; spacing: 1
+                    anchors.centerIn: parent; anchors.horizontalCenterOffset: shell.inputIconsVisible ? pill.zoomed(shell.px(28)) : 0; spacing: 1
                     // A line wider than the pill ends with an ellipsis, or
                     // scrolls slowly to its end and back while the tile is
                     // focused (the setting "Long input names").
@@ -2622,14 +2833,14 @@ FocusScope {
                         Text {
                             id: firstTwin; visible: false; text: pillText.texts.primary
                             font.family: shell.fontName; font.bold: true
-                            font.pixelSize: pillText.texts.secondary ? shell.pt(19) : shell.pt(21); font.letterSpacing: -0.2*shell.u
+                            font.pixelSize: pill.zoomed(pillText.texts.secondary ? shell.pt(19) : shell.pt(21)); font.letterSpacing: -0.2*shell.u
                         }
                         Text {
                             id: firstText; objectName: "inputPrimaryText"; text: pillText.texts.primary
                             width: firstBox.marquee ? firstBox.full : firstBox.width
                             horizontalAlignment: Text.AlignHCenter; elide: firstBox.marquee ? Text.ElideNone : Text.ElideRight
                             font.family: shell.fontName; font.bold: true
-                            font.pixelSize: pillText.texts.secondary ? shell.pt(19) : shell.pt(21); font.letterSpacing: -0.2*shell.u
+                            font.pixelSize: pill.zoomed(pillText.texts.secondary ? shell.pt(19) : shell.pt(21)); font.letterSpacing: -0.2*shell.u
                             color: pill.chosen ? shell.theme.onFocus : pill.dim ? shell.theme.dim : shell.theme.label
                         }
                         SequentialAnimation {
@@ -2653,12 +2864,12 @@ FocusScope {
                         width: Math.min(pill.textCap, Math.max(1, full)); height: secondTwin.implicitHeight
                         clip: true
                         onMarqueeChanged: if (!marquee) secondText.x = 0
-                        Text { id: secondTwin; visible: false; text: pillText.texts.secondary; font.family: shell.fontName; font.pixelSize: shell.pt(13) }
+                        Text { id: secondTwin; visible: false; text: pillText.texts.secondary; font.family: shell.fontName; font.pixelSize: pill.zoomed(shell.pt(13)) }
                         Text {
                             id: secondText; text: pillText.texts.secondary
                             width: secondBox.marquee ? secondBox.full : secondBox.width
                             horizontalAlignment: Text.AlignHCenter; elide: secondBox.marquee ? Text.ElideNone : Text.ElideRight
-                            font.family: shell.fontName; font.pixelSize: shell.pt(13)
+                            font.family: shell.fontName; font.pixelSize: pill.zoomed(shell.pt(13))
                             color: pill.chosen ? shell.theme.onFocus2 : pill.dim ? shell.theme.dim2 : shell.ink3
                         }
                         SequentialAnimation {
@@ -2701,19 +2912,22 @@ FocusScope {
                 id: tvCell
                 property var entry
                 property int navIndex: 0
-                readonly property int size: shell.sourceTileWidth
+                // As a pill: larger on Home with the inputs first.
+                readonly property real k: shell.page === "home" ? shell.sourceZoom : 1
+                readonly property int size: Math.round(shell.tvTileSize*k)
+                readonly property int corner: k > 1 ? shell.tileCorner(size, false) : shell.px(18)
                 readonly property bool chosen: shell.selected === navIndex
-                readonly property bool editing: shell.page === "home" && shell.editSourceIndex === navIndex - shell.favSlots
+                readonly property bool editing: shell.page === "home" && shell.editSourceIndex >= 0 && shell.editSourceIndex === navIndex - shell.sourceStart
                 width: size; height: size
                 scale: chosen ? (shell.pressing ? 1.03 : 1.1) : 1
                 property real lift: chosen ? -6*shell.u : 0
                 Behavior on lift { NumberAnimation { duration: shell.dur(180); easing.type: Easing.OutCubic } }
                 transform: Translate { y: tvCell.lift }
                 Behavior on scale { NumberAnimation { duration: shell.dur(180); easing.type: Easing.OutCubic } }
-                Rectangle { visible: tvCell.chosen; anchors.centerIn: parent; width: tvCell.size+shell.px(14); height: width; radius: shell.px(18)+shell.px(7); color: tvCell.editing ? shell.warning : shell.theme.ring }
-                Rectangle { visible: tvCell.chosen; anchors.centerIn: parent; width: tvCell.size+shell.px(8); height: width; radius: shell.px(18)+shell.px(4); color: shell.theme.gap }
+                Rectangle { visible: tvCell.chosen; anchors.centerIn: parent; width: tvCell.size+shell.px(14); height: width; radius: tvCell.corner+shell.px(7); color: tvCell.editing ? shell.warning : shell.theme.ring }
+                Rectangle { visible: tvCell.chosen; anchors.centerIn: parent; width: tvCell.size+shell.px(8); height: width; radius: tvCell.corner+shell.px(4); color: shell.theme.gap }
                 Rectangle {
-                    anchors.fill: parent; radius: shell.px(18)
+                    anchors.fill: parent; radius: tvCell.corner
                     color: tvCell.chosen ? shell.theme.focus : shell.chip
                     border.width: tvCell.chosen ? 0 : 1; border.color: shell.chipEdge
                     Behavior on color { ColorAnimation { duration: shell.dur(180) } }
@@ -2721,7 +2935,7 @@ FocusScope {
                 DeviceIcon {
                     objectName: "tvDeviceGlyph"
                     visible: shell.settings.tvIcon !== "tv"
-                    anchors.centerIn: parent; width: shell.px(48); height: width
+                    anchors.centerIn: parent; width: Math.round(shell.px(48)*tvCell.k); height: width
                     iconId: shell.settings.tvIcon === "tv" ? "tv-screen" : shell.settings.tvIcon
                     ink: tvCell.chosen ? shell.theme.onFocus : shell.ink
                 }
@@ -2735,12 +2949,12 @@ FocusScope {
                 Text {
                     visible: shell.settings.tvIcon === "tv"
                     anchors.centerIn: parent; text: tvCell.entry ? tvCell.entry.title : ""
-                    font.family: shell.fontName; font.bold: true; font.pixelSize: shell.pt(19)
+                    font.family: shell.fontName; font.bold: true; font.pixelSize: Math.round(shell.pt(19)*tvCell.k)
                     color: tvCell.chosen ? shell.theme.onFocus : shell.ink
                 }
                 Rectangle {
                     visible: tvCell.editing; anchors.fill: parent; anchors.margins: -shell.px(5)
-                    radius: shell.px(18) + shell.px(5); color: "transparent"
+                    radius: tvCell.corner + shell.px(5); color: "transparent"
                     border.width: Math.max(1, 2*shell.u); border.color: shell.warning
                 }
 
@@ -2782,6 +2996,8 @@ FocusScope {
                     readonly property int pillWidth: shell.inputIconOnly ? shell.px(72) : Math.max(shell.sourceMinWidth,
                         Math.min(shell.px(200), Math.ceil(Math.max(primaryTwin.implicitWidth, secondaryTwin.implicitWidth)) + shell.px(shell.inputIconsVisible ? 88 : 44)))
                     onPillWidthChanged: titleTwins.rev++
+                    // The pill's height at its own size, as the pill works it out.
+                    readonly property int pillHeight: Math.max(shell.px(64), Math.ceil(primaryTwin.implicitHeight + (texts.secondary ? 1 + secondaryTwin.implicitHeight : 0)) + shell.px(20))
                     Text {
                         id: primaryTwin; text: parent.texts.primary
                         font.family: shell.fontName; font.bold: true
@@ -2796,7 +3012,8 @@ FocusScope {
             }
         }
 
-        // Home rail: favourites, sources, the shortcuts (System among them).
+        // Home rail: favourites, sources, the shortcuts (System among them);
+        // with the inputs first (rowOrder) the sources come before the favourites.
         Row {
             id: rail
             visible: page === "home"
@@ -2805,38 +3022,10 @@ FocusScope {
             // with many inputs), it is drawn a little smaller rather than cut.
             transformOrigin: Item.Left
             scale: Math.min(1, (shell.width - 2*shell.margin) / Math.max(1, width))
-            Row {
-                spacing: shell.gap; anchors.verticalCenter: parent.verticalCenter
-                Repeater {
-                    id: favouriteCells
-                    model: favourites
-                    Loader {
-                        property int tileSize: shell.favouriteTile
-                        sourceComponent: appTile; z: item && item.chosen ? 2 : 0
-                        onLoaded: { item.entry=modelData; item.navIndex=index; }
-                    }
-                }
-                Loader {
-                    active: shell.showAddTile
-                    visible: active
-                    property int glyphSize: shell.favouriteTile
-                    sourceComponent: glyphTile
-                    onLoaded: { item.entry = Qt.binding(function() { return shell.addFavouritesTile; }); item.navIndex = 0; }
-                }
-            }
-            Row {
-                id: sourceRow
-                spacing: shell.px(12); anchors.verticalCenter: parent.verticalCenter
-                Repeater {
-                    id: sourceCells
-                    model: sources
-                    Loader {
-                        sourceComponent: modelData.kind === "tv" ? tvTile : pillTile
-                        z: item && item.chosen ? 2 : 0
-                        onLoaded: { item.entry=modelData; item.navIndex=Qt.binding(function() { return shell.favSlots+index; }); }
-                    }
-                }
-            }
+            // The first two groups go into these two places in the order the
+            // setting asks for; an empty one has no width and the row skips it.
+            Item { id: railLead; width: childrenRect.width; height: shell.tile }
+            Item { id: railSecond; width: childrenRect.width; height: shell.tile }
             Row {
                 spacing: shell.px(12); anchors.verticalCenter: parent.verticalCenter
                 Repeater {
@@ -2850,9 +3039,48 @@ FocusScope {
                         z: item && item.chosen ? 2 : 0
                         onLoaded: {
                             item.entry = Qt.binding(function() { return modelData; });
-                            item.navIndex = Qt.binding(function() { return shell.favSlots+shell.sourceCount+index; });
+                            item.navIndex = Qt.binding(function() { return shell.actionStart+index; });
                         }
                     }
+                }
+            }
+        }
+        // The favourites and the sources, each placed into one of the rail's
+        // first two places by the row order (their parent follows the setting).
+        Row {
+            id: favouriteRow
+            parent: shell.inputsFirst ? railSecond : railLead
+            spacing: shell.gap; anchors.verticalCenter: parent.verticalCenter
+            Repeater {
+                id: favouriteCells
+                model: favourites
+                Loader {
+                    property int tileSize: shell.favouriteTile
+                    property bool onRail: true
+                    sourceComponent: appTile; z: item && item.chosen ? 2 : 0
+                    onLoaded: { item.entry=modelData; item.navIndex=Qt.binding(function() { return shell.favStart+index; }); }
+                }
+            }
+            Loader {
+                active: shell.showAddTile
+                visible: active
+                property int glyphSize: shell.favouriteTile
+                property bool onRail: true
+                sourceComponent: glyphTile
+                onLoaded: { item.entry = Qt.binding(function() { return shell.addFavouritesTile; }); item.navIndex = Qt.binding(function() { return shell.favStart; }); }
+            }
+        }
+        Row {
+            id: sourceRow
+            parent: shell.inputsFirst ? railLead : railSecond
+            spacing: shell.px(12); anchors.verticalCenter: parent.verticalCenter
+            Repeater {
+                id: sourceCells
+                model: sources
+                Loader {
+                    sourceComponent: modelData.kind === "tv" ? tvTile : pillTile
+                    z: item && item.chosen ? 2 : 0
+                    onLoaded: { item.entry=modelData; item.navIndex=Qt.binding(function() { return shell.sourceStart+index; }); }
                 }
             }
         }
@@ -2863,13 +3091,15 @@ FocusScope {
             id: sourceEditControls
             Row {
                 property bool forShortcut: false
-                readonly property int editAt: forShortcut ? shell.editActionIndex : shell.editSourceIndex
-                readonly property int editCount: forShortcut ? shell.homeActions.length : shell.sourceCount
+                // A small favourite tile's ‹ › (no icon to choose).
+                property bool forFavourite: false
+                readonly property int editAt: forFavourite ? shell.editIndex : forShortcut ? shell.editActionIndex : shell.editSourceIndex
+                readonly property int editCount: forFavourite ? shell.favCount : forShortcut ? shell.homeActions.length : shell.sourceCount
                 id: editControls
-                objectName: forShortcut ? "shortcutEditControls" : "sourceEditControls"
+                objectName: forFavourite ? "favouriteEditControls" : forShortcut ? "shortcutEditControls" : "sourceEditControls"
                 spacing: shell.px(4)
                 Repeater {
-                    model: editControls.forShortcut ? ["‹", "›"] : ["‹", "▲", "›"]
+                    model: editControls.forShortcut || editControls.forFavourite ? ["‹", "›"] : ["‹", "▲", "›"]
                     Rectangle {
                         readonly property bool available: modelData === "▲" || (modelData === "‹" ? editControls.editAt > 0 : editControls.editAt < editControls.editCount-1)
                         width: shell.px(32); height: shell.px(28); radius: shell.px(8)
@@ -2885,6 +3115,7 @@ FocusScope {
                             onClicked: {
                                 shell.noteActivity();
                                 if (modelData === "▲") shell.editInputIcon = true;
+                                else if (editControls.forFavourite) shell.moveFavourite(shell.editIndex, shell.editIndex + (modelData === "‹" ? -1 : 1));
                                 else if (editControls.forShortcut) shell.moveHomeAction(shell.editActionIndex, shell.editActionIndex + (modelData === "‹" ? -1 : 1));
                                 else shell.moveSource(shell.editSourceIndex, shell.editSourceIndex + (modelData === "‹" ? -1 : 1));
                             }
@@ -2910,17 +3141,18 @@ FocusScope {
             z: 40; width: Math.min(shell.width-2*shell.margin, removeLabel.implicitWidth+shell.px(52)); height: shell.px(38)
             x: Math.max(shell.margin, Math.min(shell.width-shell.margin-width, below.x-width/2))
             y: Math.min(below.y+shell.px(12), shell.height-height-shell.px(14))
-            radius: shell.px(12); color: "#451d27"; border.color: "#ff7187"; border.width: Math.max(1, shell.u)
+            // Red, or white on black in AMOLED.
+            radius: shell.px(12); color: shell.mono ? "#000000" : "#451d27"; border.color: shell.mono ? "#ffffff" : "#ff7187"; border.width: Math.max(1, shell.u)
             opacity: visible ? 1 : 0
             Behavior on opacity { NumberAnimation { duration: shell.dur(100) } }
             Rectangle {
                 anchors.left: parent.left; anchors.leftMargin: shell.px(12); anchors.verticalCenter: parent.verticalCenter
-                width: shell.px(18); height: width; radius: width/2; color: "#ff8da0"
-                Text { anchors.centerIn: parent; text: "!"; color: "#451d27"; font.family: shell.fontName; font.bold: true; font.pixelSize: shell.px(13) }
+                width: shell.px(18); height: width; radius: width/2; color: shell.mono ? "#ffffff" : "#ff8da0"
+                Text { anchors.centerIn: parent; text: "!"; color: shell.mono ? "#000000" : "#451d27"; font.family: shell.fontName; font.bold: true; font.pixelSize: shell.px(13) }
             }
             Text {
                 id: removeLabel; anchors.centerIn: parent; anchors.horizontalCenterOffset: shell.px(10)
-                text: shell.t("confirm_remove_down"); color: "#fff0f3"; font.family: shell.fontName; font.pixelSize: shell.pt(14)
+                text: shell.t("confirm_remove_down"); color: shell.mono ? "#ffffff" : "#fff0f3"; font.family: shell.fontName; font.pixelSize: shell.pt(14)
             }
         }
 
@@ -2987,9 +3219,9 @@ FocusScope {
             visible: page === "apps"
             // Two rows and the focus ring's room under them, short of the next
             // row's favourite markers.
-            x: shell.margin-shell.px(20); y: shell.height-shell.px(360); width: shell.appColumns*(shell.tile+shell.gap)-shell.gap+shell.px(40); height: 2*shell.tile+shell.gap+shell.px(40)
+            x: shell.margin-shell.px(20); y: shell.height-shell.px(360)+shell.appDrop; width: shell.appColumns*(shell.appIconSize+shell.gap)-shell.gap+shell.px(40); height: 2*shell.appIconSize+shell.gap+shell.px(40)
             clip: true; interactive: false
-            readonly property int step: shell.tile+shell.gap
+            readonly property int step: shell.appIconSize+shell.gap
             readonly property int firstRow: Math.round(contentY/step)
             contentWidth: width; contentHeight: Math.max(height, Math.ceil(apps.length/shell.appColumns)*step+shell.px(48)-shell.gap)
             Behavior on contentY { enabled: !appWheelPause.running; NumberAnimation { duration: shell.dur(180); easing.type: Easing.OutCubic } }
@@ -3004,7 +3236,7 @@ FocusScope {
                 // Ignore focus-follow while scrolling so it cannot undo the wheel.
                 if (shell.apps.length > 0) {
                     var first = Math.ceil(contentY / step);
-                    var last = Math.max(first, Math.floor((contentY + height - shell.px(24) - shell.tile) / step));
+                    var last = Math.max(first, Math.floor((contentY + height - shell.px(24) - shell.appIconSize) / step));
                     var row = Math.floor(shell.selected / shell.appColumns);
                     row = Math.max(first, Math.min(row, last));
                     shell.selected = Math.min(shell.apps.length - 1, row * shell.appColumns + shell.selected % shell.appColumns);
@@ -3020,6 +3252,7 @@ FocusScope {
                     // Only the rows on screen and the next one are built; a long
                     // list is not a long wait, nor a hundred icons in memory.
                     active: row >= appGrid.firstRow-1 && row <= appGrid.firstRow+2
+                    property int tileSize: shell.appIconSize
                     sourceComponent: appTile
                     onLoaded: { item.entry=modelData; item.navIndex=index; }
                 }
@@ -3044,7 +3277,7 @@ FocusScope {
         }
         Rectangle {
             visible: page === "apps" && appGrid.contentHeight > appGrid.height
-            x: shell.width-shell.margin+shell.px(20); y: shell.height-shell.px(336); width: shell.px(4); height: 2*shell.tile+shell.gap; radius: width/2; color: shell.theme.track
+            x: shell.width-shell.margin+shell.px(20); y: shell.height-shell.px(336)+shell.appDrop; width: shell.px(4); height: 2*shell.appIconSize+shell.gap; radius: width/2; color: shell.theme.track
             Rectangle {
                 width: parent.width; radius: width/2; color: shell.theme.focus
                 height: parent.height*appGrid.height/appGrid.contentHeight
@@ -3072,14 +3305,15 @@ FocusScope {
             }
         }
 
-        // System: the same rail, glyph tiles at full size.
+        // System: the same rail, glyph tiles at the App icon size, centred in
+        // the band of a full tile like the favourites on Home.
         Row {
             visible: page === "system"
-            x: shell.margin; y: shell.railY; spacing: shell.gap
+            x: shell.margin; y: shell.railY + Math.round((shell.tile - shell.appIconSize)/2); spacing: shell.gap
             Repeater {
                 model: shell.tools
                 Loader {
-                    property int glyphSize: shell.tile
+                    property int glyphSize: shell.appIconSize
                     sourceComponent: glyphTile; z: item && item.chosen ? 2 : 0
                     onLoaded: { item.entry=modelData; item.navIndex=index; }
                 }

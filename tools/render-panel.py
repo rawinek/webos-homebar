@@ -10,7 +10,8 @@ an update waiting with its notes, About, the settings and a setting's values,
 the weather's place with its code (from the setup server, shared/setup.js,
 when one runs on this computer), the weather in each of its symbols, the larger text
 size, the key hints hidden, the hidden inputs list, no favourites, a set with two inputs,
-editing a favourite or a shortcut, and the shortcuts with System moved between them.
+editing a favourite or a shortcut, the shortcuts with System moved between them,
+and the inputs first (row order) with the favourites as tall as the pills.
 
 Usage: tools/render-panel.py [--size 1920x1080] [--out dist/render] [--theme default]
 Needs Python 3 with PySide6 (pip install PySide6) and a display (or Xvfb);
@@ -74,9 +75,9 @@ Item {
         shell.editIndex = -1; shell.editSourceIndex = -1; shell.editActionIndex = -1;
         shell.page = s.page; shell.selected = s.selected || 0;
         if (s.setting !== undefined) shell.selected = shell.settingKeys.indexOf(s.setting);
-        if (s.editFav !== undefined) { shell.editIndex = s.editFav; shell.selected = s.editFav; }
-        if (s.editSource !== undefined) { shell.editSourceIndex = s.editSource; shell.selected = shell.favSlots + s.editSource; }
-        if (s.editAction !== undefined) { shell.editActionIndex = s.editAction; shell.selected = shell.favSlots + shell.sourceCount + s.editAction; }
+        if (s.editFav !== undefined) { shell.editIndex = s.editFav; shell.selected = shell.favStart + s.editFav; }
+        if (s.editSource !== undefined) { shell.editSourceIndex = s.editSource; shell.selected = shell.sourceStart + s.editSource; }
+        if (s.editAction !== undefined) { shell.editActionIndex = s.editAction; shell.selected = shell.actionStart + s.editAction; }
         if (s.pane) { shell.enterValues(); if (s.valueIndex !== undefined) shell.valueIndex = s.valueIndex; }
     }
     // A new app list, as the TV would send one: the glow reader runs through the icons.
@@ -213,6 +214,37 @@ def main():
             scene("home-edit-input", page="home", settings=dict(theme, tv=True), editSource=1),
             scene("home-edit-input-last", page="home", settings=dict(theme, tv=True), editSource=4),
             scene("home-edit-fav-first", page="home", editFav=0),
+            # The inputs first (rowOrder): the favourites as tall as the pills.
+            scene("settings-row-order", page="settings", setting="rowOrder", pane=1, valueIndex=1, settings=dict(theme, rowOrder="inputs")),
+            scene("home-inputs-first", page="home", selected=1, settings=dict(theme, rowOrder="inputs")),
+            scene("home-inputs-first-fav", page="home", selected=6, settings=dict(theme, rowOrder="inputs")),
+            scene("home-inputs-first-3favs", page="home", selected=4, favs=favs[:3], settings=dict(theme, rowOrder="inputs")),
+            scene("home-inputs-first-tv", page="home", selected=0, settings=dict(theme, rowOrder="inputs", tv=True)),
+            scene("home-inputs-first-nofavs", page="home", selected=4, favs=[], settings=dict(theme, rowOrder="inputs")),
+            scene("home-inputs-first-larger", page="home", selected=1, settings=dict(theme, rowOrder="inputs", size="larger")),
+            scene("home-inputs-first-edit-fav", page="home", editFav=1, settings=dict(theme, rowOrder="inputs")),
+            scene("home-inputs-first-edit-input", page="home", editSource=1, settings=dict(theme, rowOrder="inputs", tv=True)),
+            scene("home-inputs-first-edit-shortcut", page="home", editAction=1, settings=dict(theme, rowOrder="inputs")),
+            # The icon size (favSize) in both orders, with the larger text and icon-only inputs.
+            scene("home-size-medium", page="home", selected=0, settings=dict(theme, favSize="medium")),
+            scene("home-size-small", page="home", selected=0, settings=dict(theme, favSize="small")),
+            scene("home-inputs-first-medium", page="home", selected=1, settings=dict(theme, rowOrder="inputs", favSize="medium")),
+            scene("home-inputs-first-small", page="home", selected=1, settings=dict(theme, rowOrder="inputs", favSize="small")),
+            scene("home-inputs-first-2inputs", page="home", selected=0, favs=favs[:3], inputs=inputs(INPUTS_SMALL), settings=dict(theme, rowOrder="inputs", tv=True)),
+            scene("home-inputs-first-icons", page="home", selected=1, settings=dict(theme, rowOrder="inputs", inputText="icon", tv=True)),
+            scene("home-inputs-first-larger-small", page="home", selected=1, settings=dict(theme, rowOrder="inputs", size="larger", favSize="small")),
+            scene("apps-size-small", page="apps", selected=3, settings=dict(theme, favSize="small")),
+            scene("apps-size-medium", page="apps", selected=3, settings=dict(theme, favSize="medium")),
+            scene("system-size-small", page="system", selected=1, settings=dict(theme, favSize="small")),
+            scene("settings-fav-size", page="settings", setting="favSize", pane=1, valueIndex=1, settings=dict(theme, favSize="medium")),
+            # AMOLED: black and white, grey icons, no glow.
+            scene("amoled-home", page="home", selected=1, settings=dict(theme, theme="amoled")),
+            scene("amoled-home-input", page="home", selected=8, settings=dict(theme, theme="amoled")),
+            scene("amoled-inputs-first", page="home", selected=1, favs=favs[:4], settings=dict(theme, theme="amoled", rowOrder="inputs", tv=True)),
+            scene("amoled-apps", page="apps", selected=3, settings=dict(theme, theme="amoled")),
+            scene("amoled-settings", page="settings", setting="theme", pane=1, valueIndex=9, settings=dict(theme, theme="amoled")),
+            scene("amoled-edit-fav", page="home", editFav=1, settings=dict(theme, theme="amoled")),
+            scene("home-inputs-first-usb", page="home", selected=4, inputs=inputs(INPUTS) + EXTRA_INPUTS, usb=USB, shownInputs=[USB[0]["id"]], settings=dict(theme, rowOrder="inputs")),
         ]
         scenes += [scene("weather-%d-%s" % (code, "day" if day else "night"), page="home", selected=0, weather={"ok": True, "temp": -3 + code % 30, "apparent": -5 + code % 30, "code": code, "day": day})
                    for code, day in ((0, True), (0, False), (2, True), (2, False), (3, True), (45, True), (61, True), (73, True), (95, True))]

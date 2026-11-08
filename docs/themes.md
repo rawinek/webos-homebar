@@ -5,8 +5,15 @@ values are a list; moving along it repaints the panel at once, so the list
 itself is the preview. The choice is saved with the other settings and kept
 by updates.
 
-There are nine: **Default**, the launcher's original grey look, and eight
-two-colour themes, four on a dark base and four on a light one. (Meadow,
+There are ten: **Default**, the launcher's original grey look, eight
+two-colour themes, four on a dark base and four on a light one, and
+**AMOLED**, for OLED screens: pure black and white. Under the name and the
+row the shade is solid black, the tiles, pills, menu and clock bar are black
+with a thin grey edge, the text and the focused tile white, there is no
+coloured glow, the app icons are shown in greys and the colour keys in the
+hints are white badges. Nothing keeps a colour: the edited tile's frame and
+arrows, the warning before a tile is removed, the update dot and the popups'
+frames are white too. (Meadow,
 Sky and Violet were taken out in 0.14.0; a TV that had one of them saved
 falls back to Default.)
 
@@ -39,6 +46,7 @@ stand-ins.
 | [Cherry](#cherry) | <img src="themes/cherry-colors.svg" width="56" alt="Cherry: accent #FF173D, base #F9DEDF"> | `#FF173D` | `#F9DEDF` |
 | [Cobalt](#cobalt) | <img src="themes/cobalt-colors.svg" width="56" alt="Cobalt: accent #1D61F3, base #F1F4F9"> | `#1D61F3` | `#F1F4F9` |
 | [Indigo](#indigo) | <img src="themes/indigo-colors.svg" width="56" alt="Indigo: accent #263BAA, base #FFF4D6"> | `#263BAA` | `#FFF4D6` |
+| [AMOLED](#amoled) | <img src="themes/amoled-colors.svg" width="56" alt="AMOLED: white on black"> | `#FFFFFF` | `#000000` |
 
 ## Default
 
@@ -124,3 +132,12 @@ playing video:
 ## Adding a theme
 
 See [Development → Adding a theme](development.md#adding-a-theme).
+
+## AMOLED
+
+Pure black and white for OLED screens: a solid black shade under the name and
+the row, black tiles, pills and menu with a thin grey edge, white text and
+focus, no glow, app icons in greys; warnings, edit arrows and popups are white
+on black as well.
+
+<img src="themes/amoled.png" width="100%" alt="AMOLED theme: black tiles with grey app icons, white focused HDMI 2 pill">

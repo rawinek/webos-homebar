@@ -26,7 +26,7 @@ with tempfile.TemporaryDirectory() as tmp:
         shell.modeInfo = mode("native");
         check(shell.settingKeys.indexOf("button") < 0, "row with System HOME");
         shell.modeInfo = mode("overlay");
-        check(shell.settingKeys.indexOf("button") > shell.settingKeys.indexOf("mode"), "row in the overlay");
+        check(shell.settingGroups.some(function(g) { return g.title === "grp_remote" && g.keys.indexOf("button") >= 0; }), "row in the overlay, in Remote");
         shell.buttonInfo = {ok: true, mapper: "input", active: true, blocked: "", bound: []};
         shell.page = "settings"; shell.selected = shell.settingKeys.indexOf("button");
         check(shell.settingsItems[shell.selected].value === "Brak", "nothing bound");

@@ -103,6 +103,28 @@ async function inventory() {
   return { returnValue: true, apps };
 }
 
+// Free up memory: closes the apps running in the background, those a user
+// opened (they have a launch point), not the one on screen, not Homebar, the
+// Homebrew Channel or Input Hook, and none of LG's own (SYSTEM_IDS). LG's
+// closeAllApps closed everything, the app on screen and Homebar with it, so
+// the screen went black for a moment and came back on the input.
+async function closeBackgroundApps() {
+  const [running, front, points] = await Promise.all([
+    luna('luna://com.webos.applicationManager/running', {}),
+    luna('luna://com.webos.applicationManager/getForegroundAppInfo', { extraInfo: true }),
+    luna('luna://com.webos.applicationManager/listLaunchPoints', {})]);
+  if (!Array.isArray(running.running)) return { returnValue: false, errorText: running.errorText || 'running failed' };
+  const launchable = new Set((points.launchPoints || []).map((p) => p.id));
+  const onScreen = new Set([front.appId]);
+  for (const f of front.foregroundAppInfo || []) { onScreen.add(f.appId); onScreen.add(f.windowGroupOwnerId); }
+  const ids = Array.from(new Set(running.running.map((r) => r.id))).filter((id) => launchable.has(id) && !onScreen.has(id)
+    && !KEEP_APPS.has(id) && id.indexOf(APP) !== 0 && !SYSTEM_IDS.test(id));
+  let closed = 0;
+  for (const id of ids) if ((await luna('luna://com.webos.applicationManager/closeByAppId', { id })).returnValue) closed++;
+  note('free memory: closed ' + closed + ' of ' + ids.length + (ids.length ? ' (' + ids.join(', ') + ')' : ''));
+  return { returnValue: true, closed, tried: ids.length };
+}
+
 const BASE = '/var/lib/webosbrew/rawin-launcher-home';
 // Apps the panel never uninstalls: Homebar itself, the Homebrew Channel and
 // Input Hook (HOME needs it on the overlay).
@@ -231,10 +253,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/home-key' && req.method === 'POST') {
       return send(res, 200, await luna('luna://com.webos.service.networkinput/sendSpecialKey', { key: 'HOME' }));
     }
-    if (url.pathname === '/close-apps') {
-      // LG also closes our overlay; the watchdog preloads it again afterward.
-      return send(res, 200, await luna('luna://com.webos.applicationManager/closeAllApps', {}));
-    }
+    if (url.pathname === '/close-apps') return send(res, 200, await closeBackgroundApps());
     if (url.pathname === '/mode') {
       if (req.method === 'GET') return send(res, 200, modeControl.status());
       if (req.method !== 'POST') return send(res, 405, { ok: false, error: 'method' });

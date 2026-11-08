@@ -91,6 +91,6 @@ test TVs:
   overlay only where you did not change them since; other actions stay.
 
 From the unpacked release: `sh rawin-launcher/install.sh --native-home`. To
-return to the overlay: *Launcher settings → Launch method*, or
+return to the overlay: *Launcher settings → Advanced → Launch method*, or
 `sh /var/lib/webosbrew/rawin-launcher-home/native-home.sh disable`; `status`
 shows the state.

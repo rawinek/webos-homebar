@@ -61,6 +61,10 @@ The picture stays where it is. Press HOME again, or BACK, and it is gone.
   sets that have them and the USB drives plugged in, with hold OK to put one on
   the Home row or take it off. A USB drive opens in LG's media player.
   [Inputs](docs/using.md#inputs).
+- **Inputs first**, if you use Homebar as your source button: *Launcher
+  settings → Home row → Row order* puts the inputs before the favourites,
+  large like the favourites were, and Home opens on the input on screen.
+  *Look → Tile size* makes the tiles large, medium or small. [Launcher settings](docs/using.md#launcher-settings).
 - **Uninstall from Homebar**: hold OK on an app in *Apps* to uninstall it,
   for apps from the LG Content Store or the Homebrew Channel, after a question.
   [Apps](docs/using.md#apps).
@@ -77,7 +81,7 @@ The picture stays where it is. Press HOME again, or BACK, and it is gone.
   there.
 - **Backup and restore** of favourites and settings in one file.
 - **A remote button for Homebar** (overlay): press it twice in *Launcher
-  settings → Help → Remote button*; Homebar sets it in Input Hook or Magic
+  settings → Remote → Remote button*; Homebar sets it in Input Hook or Magic
   Mapper, and Unpin takes it out again.
 - **After an app exits or BACK is held** (System HOME and the older overlay):
   the TV goes back to the last input, a chosen one, or does nothing; choose
@@ -88,7 +92,7 @@ The picture stays where it is. Press HOME again, or BACK, and it is gone.
 ## How Homebar opens
 
 Homebar is one panel, put on the screen in the way the TV allows. The
-installer picks the method from what the TV has; *Launcher settings → Help →
+installer picks the method from what the TV has; *Launcher settings → Advanced →
 Launch method* changes it where more than one fits.
 
 | Method | What it is | Needs | Typical TV |
@@ -148,7 +152,7 @@ the Homebar app tile, or press the button you mapped).
 - Choose by hand: `--native-home`, `--additional-overlay`, `--home-panel`,
   `--overlay`. All options, installing without internet on the TV, updating
   and uninstalling: [Install, update, uninstall](docs/install.md).
-- **Additional overlay: a button:** *Launcher settings → Help → Remote
+- **Additional overlay: a button:** *Launcher settings → Remote → Remote
   button* asks you to press it twice and sets it in Input Hook or Magic Mapper.
   By hand it is a mapper rule that launches the app id `org.rawin.launcher`
   ([Mapping a button to Homebar](docs/install.md#mapping-a-button-to-homebar)).

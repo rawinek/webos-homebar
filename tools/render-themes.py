@@ -30,10 +30,13 @@ INPUTS = [("PlayStation 5", True), ("Apple TV", True), ("", False), ("", False)]
 
 
 def themes():
-    """(id, accent, base) from ui/Themes.js; for the default, its focused and plain tile."""
+    """(id, accent, base) from ui/Themes.js; for the default, its focused and plain tile;
+    for AMOLED (mono), white on black."""
     text = (ROOT / "ui/Themes.js").read_text()
-    return [(m[0], m[1] or "#f2f3f5", m[2] or "#26282e")
-            for m in re.findall(r'\{id: "(\w+)"(?:, accent: "(#\w+)", base: "(#\w+)")?\}', text)]
+    out = [(m[0], m[1] or "#f2f3f5", m[2] or "#26282e")
+           for m in re.findall(r'\{id: "(\w+)"(?:, accent: "(#\w+)", base: "(#\w+)")?\}', text)]
+    out += [(m, "#ffffff", "#000000") for m in re.findall(r'\{id: "(\w+)", mono: true\}', text)]
+    return out
 
 
 def panel(app_dir):

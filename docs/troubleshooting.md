@@ -74,9 +74,9 @@ shows LG's Home, nothing, or a black screen:
 - **Restart the TV.** The app manager keeps what it read about Home until it
   restarts; if a switch between methods went wrong, a restart clears it.
 - Another launcher owning HOME (Glasshouse's or Luma's Home switched on)
-  blocks System HOME; *Launcher settings → Launch method* says so. Use the
+  blocks System HOME; *Launcher settings → Advanced → Launch method* says so. Use the
   additional overlay, or switch their takeover off first.
-- Switch back in *Launcher settings → Launch method*, or run the
+- Switch back in *Launcher settings → Advanced → Launch method*, or run the
   [uninstaller](install.md#uninstall); both give LG's Home back.
 
 ## The remote stops after holding BACK (webOS 11)
@@ -91,7 +91,7 @@ webOS 10 is not affected.
 ## HOME does nothing (overlay)
 
 In the additional overlay HOME stays with LG on purpose: open Homebar from its
-app tile, or from the button you chose in *Launcher settings → Help → Remote
+app tile, or from the button you chose in *Launcher settings → Remote → Remote
 button* (or mapped by hand in Input Hook or Magic Mapper to launch
 `org.rawin.launcher`). If that button does nothing, check that the mapper runs
 and reads the remote: the popup says so when Homebar saves it. The rest of this section is for HOME via Input Hook.
@@ -181,7 +181,7 @@ Whatever happens, `uninstall.sh` gives LG's Home and the HOME button back.
   back at once.
 - Home panel: deleting `/var/lib/webosbrew/init.d/76-rawin-launcher` and
   rebooting gives LG's Home back, since the bind mounts end with a reboot.
-- System HOME: *Launcher settings → Launch method → Additional overlay*, or
+- System HOME: *Launcher settings → Advanced → Launch method → Additional overlay*, or
   `sh /var/lib/webosbrew/rawin-launcher-home/native-home.sh disable`; then
   restart the TV if Home still looks wrong.
 - Overlay: `sh /var/lib/webosbrew/rawin-launcher-home/takeover.sh restore`
