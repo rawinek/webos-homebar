@@ -225,7 +225,7 @@ at *Larger* and the 12-hour clock:
 | | Temperature shown | *Standard temperature* from Open-Meteo, or *Feels like* (`apparent_temperature`, its equivalent of RealFeel) |
 | On screen | App name above favourites | Whether the big name of the focused item shows on Home and in *Apps* (System always shows it) |
 | | Key hints | The keys and what they do, on the bottom line: shown or hidden (the settings menu and editing favourites keep theirs) |
-| | Homebar timeout | *Off* by default, or 3–60 seconds. The panel closes after that much inactivity outside Launcher settings; a key, click, wheel scroll or actual Magic Remote pointer movement starts the count again. The pointer stays visible when the panel hides |
+| | Homebar timeout | *Off* by default, or 3–60 seconds. The panel closes after that much inactivity outside Launcher settings; a key, click, wheel scroll or actual Magic Remote pointer movement starts the count again. Then the remote's keys go to what is on screen again. With the overlay the pointer stays visible when the panel hides |
 | Backup | Back up favourites and settings | OK writes everything the launcher keeps to a file next to it; the status says when the last backup was made, see [Backup](#backup) |
 | | Restore from the backup | OK brings that file back |
 | Updates | Updates | The installed version; OK checks, downloads and installs a new release, see [Update](install.md#update). The launcher also looks once a day, the first time Home opens, and shows a dot on *System* and *Launcher settings* when a new version is there |

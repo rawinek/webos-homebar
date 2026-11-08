@@ -5,7 +5,7 @@ panel log. Runs the patched main.qml in Qt (offscreen) with a stand-in panel
 and a stand-in setup server on 127.0.0.1:8898."""
 import http.server, json, os, pathlib, subprocess, sys, tempfile, threading
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
-from PySide6.QtCore import QUrl, QTimer, Qt, QEvent
+from PySide6.QtCore import QUrl, QTimer, Qt, QEvent, QMetaObject
 from PySide6.QtGui import QGuiApplication, QKeyEvent
 from PySide6.QtQuick import QQuickView
 
@@ -32,7 +32,8 @@ FocusScope {
         rootWindow.focus = (activeFocus && rootWindow.active) ? (uiController.forceActiveFocus(), true) : false;
     }
     property var systemProperties: QtObject { property bool isAppForeground: true; property bool isAppReadyToUse: true }
-    property var interfaces: QtObject { property var application: QtObject { function closeApp() {} } }
+    property int closed: 0
+    property var interfaces: QtObject { property var application: QtObject { function closeApp() { rootWindow.closed++; } } }
     function keyPressEvent(keyCode) {
         uiController.fivewayKeyEvent(keyCode);
     }
@@ -73,6 +74,7 @@ FocusScope {
     signal timeoutRequested()
     signal stockRequested()
     signal closeRequested()
+    function timeout() { timeoutRequested(); }
     Keys.onPressed: { if (event.key === Qt.Key_Right) { rights++; event.accepted = true; } }
 }
 ''')
@@ -89,6 +91,9 @@ def step():
     # Home coming back to the front: LG's root takes the focus and hands it on.
     root.setProperty('focus', False); root.forceActiveFocus()
     key(Qt.Key_Right); key(Qt.Key_Right); key(Qt.Key_Up)
+    # The timeout closes Home as BACK does (issue #22).
+    panel_item = [o for o in root.findChildren(object) if o.property('rights') is not None][0]
+    QMetaObject.invokeMethod(panel_item, 'timeout')
     QTimer.singleShot(600, app.quit)
 QTimer.singleShot(300, step)
 QTimer.singleShot(5000, app.quit)
@@ -104,4 +109,5 @@ assert '\nfocus panel' in text and 'focus LG Home' not in text, text
 assert 'TypeError' not in text
 item = [o for o in root.findChildren(object) if o.property('rights') is not None]
 assert item and item[0].property('rights') == 2, 'the panel did not get the Right presses'
-print('PASS Home panel on a webOS 6 shaped Home: focus and keys reach the panel, the panel log records it')
+assert root.property('closed') == 1, 'the timeout did not close Home'
+print('PASS Home panel on a webOS 6 shaped Home: focus and keys reach the panel, the panel log records it, a timeout closes Home')

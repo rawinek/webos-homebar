@@ -68,19 +68,15 @@ function injection(ROOT) {
     '',
     '    // Homebar: the panel on top of LG Home, in LG\'s own process.',
     '    property bool cleanHomeStock: false',
-    // Kept separate from cleanHomeStock: a timeout must hide just Homebar,
-    // without opening LG\'s ribbon or closing Home (which hides the pointer).
-    '    property bool cleanHomeHidden: false',
     '    // LG Home\'s own foreground state (systemProperties), or true on a Home',
     '    // that has none to read: the panel shows whenever Home is in front and',
     '    // LG\'s ribbon was not asked for.',
     '    property bool cleanHomeForeground: true',
     '    onCleanHomeForegroundChanged: {',
     '        ' + ROOT + '.cleanHomeLog("foreground " + cleanHomeForeground);',
-    '        if (cleanHomeForeground) { cleanHomeStock = false; cleanHomeHidden = false; if (cleanHomeLoader.item) cleanHomeLoader.item.forceActiveFocus(); }',
+    '        if (cleanHomeForeground) { cleanHomeStock = false; if (cleanHomeLoader.item) cleanHomeLoader.item.forceActiveFocus(); }',
     '    }',
     '    onCleanHomeStockChanged: ' + ROOT + '.cleanHomeLog("LG Home shown " + cleanHomeStock)',
-    '    onCleanHomeHiddenChanged: ' + ROOT + '.cleanHomeLog("panel hidden " + cleanHomeHidden)',
     // On a Home never tested, nothing else records what the panel went
     // through: LG's own log lines and QML warnings do not reach
     // /var/log/messages. The setup server keeps these lines in
@@ -138,7 +134,7 @@ function injection(ROOT) {
     '        z: 500',
     '        anchors.fill: parent',
     '        source: "file:///var/lib/webosbrew/rawin-launcher/current/Launcher.qml"',
-    '        visible: !' + ROOT + '.cleanHomeStock && !' + ROOT + '.cleanHomeHidden',
+    '        visible: !' + ROOT + '.cleanHomeStock',
     // On the Loader, not the root: LG's root has its own Component.onCompleted.
     '        Component.onCompleted: {',
     '            try {',
@@ -164,7 +160,7 @@ function injection(ROOT) {
     '                ' + ROOT + '.cleanHomeForeground = Qt.binding(function() { return systemProperties.isAppForeground; });',
     '            item.ready = props && props.isAppReadyToUse !== undefined',
     '                ? Qt.binding(function() { return systemProperties.isAppReadyToUse; }) : true;',
-    '            item.foreground = Qt.binding(function() { return ' + ROOT + '.cleanHomeForeground && !' + ROOT + '.cleanHomeStock && !' + ROOT + '.cleanHomeHidden; });',
+    '            item.foreground = Qt.binding(function() { return ' + ROOT + '.cleanHomeForeground && !' + ROOT + '.cleanHomeStock; });',
     '            item.forceActiveFocus();',
     '            ' + ROOT + '.cleanHomeLog("panel loaded; foreground " + ' + ROOT + '.cleanHomeForeground + ", ready " + item.ready + ", panel has focus " + item.activeFocus);',
     '        }',
@@ -172,7 +168,10 @@ function injection(ROOT) {
     '    Connections {',
     '        target: cleanHomeLoader.item',
     '        ignoreUnknownSignals: true',
-    '        onTimeoutRequested: { ' + ROOT + '.cleanHomeHidden = true; }',
+    // A timeout closes Home as BACK does. Hiding only the panel (to keep the
+    // Magic Remote pointer) left Home in front: every key went to it and
+    // brought the panel back, and none reached the input (issue #22).
+    '        onTimeoutRequested: { interfaces.application.closeApp(); }',
     '        onStockRequested: {',
     '            ' + ROOT + '.cleanHomeStock = true;',
     '            try { uiController.currentMode = "main"; uiController.startApp(); } catch (e) {}',
@@ -236,7 +235,7 @@ main = replaceOnce(main, /^([ \t]*)id:[ \t]*uiController[ \t]*$/m, function (m) 
 }, 'the UI controller (id: uiController)', true);
 // Focus coming back to Home goes to the panel, not LG's ribbon.
 main = replaceOnce(main, /^([ \t]*)function focusIn\(\)[ \t]*\{/m, function (m) {
-  return m[0] + '\n' + m[1] + '    ' + ROOT + '.cleanHomeStock = false; ' + ROOT + '.cleanHomeHidden = false;';
+  return m[0] + '\n' + m[1] + '    ' + ROOT + '.cleanHomeStock = false;';
 }, 'function focusIn()', false);
 // Without focusIn() (the full-screen Home of webOS 6) the root hands focus to
 // LG's controller whenever Home becomes active, and the panel, which has to
@@ -249,11 +248,6 @@ main = replaceOnce(main, /^([ \t]*)function keyPressEvent\((\w+)\)[ \t]*\{/m, fu
   var ind = m[1] + '    ', key = m[2];
   return [m[0],
     ind + 'if (' + ROOT + '.cleanHomeKeys < 40) { ' + ROOT + '.cleanHomeKeys++; ' + ROOT + '.cleanHomeLog("keyPressEvent " + ' + key + ' + ", LG Home shown " + ' + ROOT + '.cleanHomeStock); }',
-    ind + 'if (' + ROOT + '.cleanHomeHidden) {',
-    ind + '    ' + ROOT + '.cleanHomeHidden = false;',
-    ind + '    if (cleanHomeLoader.item) cleanHomeLoader.item.forceActiveFocus();',
-    ind + '    return;',
-    ind + '}',
     ind + 'if (' + ROOT + '.cleanHomeStock && ' + key + ' === WebOS.Key_webOS_Blue) {',
     ind + '    ' + ROOT + '.cleanHomeStock = false;',
     ind + '    if (cleanHomeLoader.item) cleanHomeLoader.item.forceActiveFocus();',

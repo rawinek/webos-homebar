@@ -328,8 +328,8 @@ FocusScope {
     readonly property var addFavouritesTile: ({title: t("add_favs_title"), action: "apps", symbol: "add"})
     signal stockRequested()
     signal closeRequested()
-    // Unlike BACK, a timeout hides only the Homebar surface. Its host keeps
-    // the Home card (and therefore the Magic Remote pointer) alive.
+    // A timeout has its own signal: the overlay hides only its window (the
+    // Magic Remote pointer stays), the Home panel closes Home as BACK does.
     signal timeoutRequested()
     signal exitTargetChosen(string target)
 
