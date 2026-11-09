@@ -46,7 +46,10 @@ stand-ins.
 | [Cherry](#cherry) | <img src="themes/cherry-colors.svg" width="56" alt="Cherry: accent #FF173D, base #F9DEDF"> | `#FF173D` | `#F9DEDF` |
 | [Cobalt](#cobalt) | <img src="themes/cobalt-colors.svg" width="56" alt="Cobalt: accent #1D61F3, base #F1F4F9"> | `#1D61F3` | `#F1F4F9` |
 | [Indigo](#indigo) | <img src="themes/indigo-colors.svg" width="56" alt="Indigo: accent #263BAA, base #FFF4D6"> | `#263BAA` | `#FFF4D6` |
-| [AMOLED](#amoled) | <img src="themes/amoled-colors.svg" width="56" alt="AMOLED: white on black"> | `#FFFFFF` | `#000000` |
+| [AMOLED (full dark)](#amoled) | <img src="themes/amoled-colors.svg" width="56" alt="AMOLED: white on black"> | `#FFFFFF` | `#000000` |
+| [AMOLED (colour buttons)](#amoled) | <img src="themes/amoled-colors.svg" width="56" alt="AMOLED: white on black"> | `#FFFFFF` | `#000000` |
+| [AMOLED (colour apps)](#amoled) | <img src="themes/amoled-colors.svg" width="56" alt="AMOLED: white on black"> | `#FFFFFF` | `#000000` |
+| [AMOLED (colour apps and background)](#amoled) | <img src="themes/amoled-colors.svg" width="56" alt="AMOLED: white on black"> | `#FFFFFF` | `#000000` |
 
 ## Default
 
@@ -135,9 +138,18 @@ See [Development → Adding a theme](development.md#adding-a-theme).
 
 ## AMOLED
 
-Pure black and white for OLED screens: a solid black shade under the name and
-the row, black tiles, pills and menu with a thin grey edge, white text and
-focus, no glow, app icons in greys; warnings, edit arrows and popups are white
-on black as well.
+Black and white for OLED screens: a black shade under the name and the row (as
+deep as in the other themes; solid only under the settings menu), black tiles,
+pills and menu with a thin grey edge, white text and focus; warnings, edit
+arrows and popups are white on black as well. Four variants:
+
+- **AMOLED (full dark):** no glow, app icons in greys, the remote's colour keys
+  in the hints as white badges.
+- **AMOLED (colour buttons):** the same, with the red and yellow key badges in
+  colour.
+- **AMOLED (colour apps):** app icons and key badges in colour, still black
+  behind them.
+- **AMOLED (colour apps and background):** the same, with the coloured glow
+  behind the focused app as in the other themes.
 
 <img src="themes/amoled.png" width="100%" alt="AMOLED theme: black tiles with grey app icons, white focused HDMI 2 pill">

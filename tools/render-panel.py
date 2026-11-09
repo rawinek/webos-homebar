@@ -244,6 +244,10 @@ def main():
             scene("amoled-apps", page="apps", selected=3, settings=dict(theme, theme="amoled")),
             scene("amoled-settings", page="settings", setting="theme", pane=1, valueIndex=9, settings=dict(theme, theme="amoled")),
             scene("amoled-edit-fav", page="home", editFav=1, settings=dict(theme, theme="amoled")),
+            scene("amoled-keys-home", page="home", selected=1, settings=dict(theme, theme="amoled_keys")),
+            scene("amoled-apps-home", page="home", selected=1, settings=dict(theme, theme="amoled_apps")),
+            scene("amoled-apps-apps", page="apps", selected=3, settings=dict(theme, theme="amoled_apps")),
+            scene("amoled-glow-home", page="home", selected=1, settings=dict(theme, theme="amoled_glow")),
             scene("home-inputs-first-usb", page="home", selected=4, inputs=inputs(INPUTS) + EXTRA_INPUTS, usb=USB, shownInputs=[USB[0]["id"]], settings=dict(theme, rowOrder="inputs")),
         ]
         scenes += [scene("weather-%d-%s" % (code, "day" if day else "night"), page="home", selected=0, weather={"ok": True, "temp": -3 + code % 30, "apparent": -5 + code % 30, "code": code, "day": day})

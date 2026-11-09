@@ -209,7 +209,8 @@ at *Larger* and the 12-hour clock:
 | :--- | :--- | :--- |
 | About | About Homebar | The version, a code to [buy me a coffee](https://buymeacoffee.com/rawin) and where the source is. The menu opens here |
 | Look | Language | *System language* (the TV's menu language, when it is one of the [languages](#languages)), or one of them by hand |
-| | Theme | Default or one of eight two-colour themes, see [Themes](themes.md) |
+| | Theme | Default, one of eight two-colour themes or one of four AMOLED (black) themes, see [Themes](themes.md) |
+| | Shade behind Homebar | On (default) or off: the dark shade under the name and the row, and the glow in the focused app's colour. Off leaves the picture as it is, in every theme; the settings menu keeps its shade so it stays readable |
 | | Text size | Normal, Large or Larger: the names, hints, labels and the menu grow; the tiles and pills keep their size (see *Tile size*), so the row still fits |
 | | Tile size | *Large* (default, the full tile), *Medium*, or *Small*: as tall as the input pills and shortcuts, so the Home row is level. It sets the first group of the Home row (the favourites, or the inputs with *Row order* set to *Inputs, then favourites*), the icons in *All applications* (smaller icons, more columns) and the tiles on the *System* page. On Home the first group still gets smaller when the rest of the row leaves too little room |
 | | Animations | On or off |

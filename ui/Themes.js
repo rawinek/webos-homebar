@@ -16,8 +16,14 @@ var themes = [
     {id: "cobalt", accent: "#1D61F3", base: "#F1F4F9"},
     {id: "indigo", accent: "#263BAA", base: "#FFF4D6"},
     // Pure black and white for OLED screens: black shade, tiles and menu,
-    // white text, focus and warnings, no coloured glow, app icons in greys (mono).
-    {id: "amoled", mono: true}
+    // white text, focus and warnings (mono). Full dark: no coloured glow, app
+    // icons in greys, the remote's colour keys as white badges. The others
+    // bring colour back step by step: the keys, then the app icons, then the
+    // glow behind the focused app.
+    {id: "amoled", mono: true},
+    {id: "amoled_keys", mono: true, colourKeys: true},
+    {id: "amoled_apps", mono: true, colourKeys: true, colourApps: true},
+    {id: "amoled_glow", mono: true, colourKeys: true, colourApps: true, glow: true}
 ];
 var ids = themes.map(function(t) { return t.id; });
 
@@ -117,10 +123,26 @@ var amoled = {
     warning: "#ffffff"
 };
 
+// Whether a theme draws the coloured glow behind the row at all (AMOLED
+// only in its last variant); "Shade behind Homebar" off turns it off too.
+function hasGlow(id) {
+    var t = find(id);
+    return !t.mono || t.glow === true;
+}
+
 // Every colour the panel uses, for a theme id (unknown: the default).
 function palette(id) {
     var t = find(id);
-    if (t.mono) return amoled;
+    if (t.mono) {
+        var p = {}, k;
+        for (k in amoled) p[k] = amoled[k];
+        p.colourKeys = t.colourKeys === true;
+        p.colourApps = t.colourApps === true;
+        p.glow = t.glow === true;
+        // With the glow back, anything but an app glows in the default grey.
+        if (p.glow) p.neutral = original.neutral;
+        return p;
+    }
     if (!t.accent) return original;
     var A = t.accent, B = t.base;
     var light = luminance(B) > 0.4;

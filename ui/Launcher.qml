@@ -199,7 +199,8 @@ FocusScope {
     }
     // Launcher settings, saved with the favourites (key "settings").
     // lang: "system" or a code from Strings.languages; theme: an id from
-    // Themes.ids; size: the text size; motion: animations; sort: the Apps
+    // Themes.ids; size: the text size; motion: animations; shade: the shade
+    // and the glow behind the name and the row (off: the picture as it is); sort: the Apps
     // order; tv: Live TV on the rail; sourceOrder: the order of Live TV and
     // the inputs on the rail; inputText: what an input's pill shows ("hdmiLabel"
     // is "HDMI 2" over the label, "label", "hdmi" or "labelHdmi");
@@ -381,9 +382,16 @@ FocusScope {
     // its colour lights the bottom-left edge, the picture stays visible.
     // Colours come from the theme (Launcher settings → Theme, see Themes.js).
     readonly property var theme: Themes.palette(settings.theme)
-    // AMOLED: black and white only, so no coloured glow, app icons in greys
-    // and the colour keys in the hints as white badges.
+    // AMOLED: a black and white panel. Full dark also has no coloured glow,
+    // app icons in greys and the colour keys in the hints as white badges;
+    // its variants bring back the keys, the icons and the glow (Themes.js).
     readonly property bool mono: theme.mono === true
+    readonly property bool greyIcons: mono && theme.colourApps !== true
+    readonly property bool whiteKeys: mono && theme.colourKeys !== true
+    // The setting "Shade behind Homebar" off leaves the picture as it is, in
+    // any theme: no shade under the row and no glow.
+    readonly property bool shade: settings.shade !== false
+    readonly property bool glow: Themes.hasGlow(settings.theme) && shade
     readonly property string ink: theme.ink
     readonly property string ink2: theme.ink2
     readonly property string ink3: theme.ink3
@@ -523,8 +531,8 @@ FocusScope {
     readonly property var hero: heroFor(page, selected, apps, favourites, editIndex, launching, message, notice, tools, sources, iconColors)
     readonly property var hints: hintsFor(page, selected, favouriteKeys, editIndex, lang, updateInfo, pane, valueIndex, hiddenInputs)
     // The remote's colour keys, as the hints show them (the same in every theme).
-    readonly property color keyRed: mono ? "#ffffff" : "#d83a3f"
-    readonly property color keyYellow: mono ? "#ffffff" : "#f2c230"
+    readonly property color keyRed: whiteKeys ? "#ffffff" : "#d83a3f"
+    readonly property color keyYellow: whiteKeys ? "#ffffff" : "#f2c230"
     property color glowColor: hero.color
     Behavior on glowColor { ColorAnimation { duration: shell.dur(300) } }
 
@@ -688,7 +696,7 @@ FocusScope {
         var weather = s.weather !== false;
         var groups = [
             {title: "grp_about", keys: ["about"]},
-            {title: "grp_look", keys: ["lang", "theme", "size", "favSize", "motion"]},
+            {title: "grp_look", keys: ["lang", "theme", "shade", "size", "favSize", "motion"]},
             // Live TV is switched with the inputs, so the row stays one list.
             {title: "grp_home", keys: ["rowOrder", "sources", "homeShortcuts"].concat(s.homeCloseApps === true && memory ? ["closeAppsMode"] : [])},
             {title: "grp_inputs", keys: ["inputText"].concat(s.title !== false ? ["inputHeading"] : []).concat(["inputOverflow"])},
@@ -720,7 +728,7 @@ FocusScope {
     // One setting as the menu shows it: its name, its value's name (or an
     // action's status), and what OK does with it.
     function settingFor(key) {
-        var names = {lang: "set_language", theme: "set_theme", size: "set_size", motion: "set_motion", sort: "set_sort",
+        var names = {lang: "set_language", theme: "set_theme", size: "set_size", motion: "set_motion", shade: "set_shade", sort: "set_sort",
                      showHidden: "set_hidden", exitTo: "set_exit", hours: "set_hours", title: "set_title", backup: "set_backup",
                      restore: "set_restore", update: "set_update", beta: "set_beta",
                      place: "set_place", units: "set_units", temperature: "set_temperature", about: "set_about", hints: "set_hints",
@@ -817,7 +825,7 @@ FocusScope {
             list = [{id: "24", title: t("val_hours_24")}, {id: "12", title: t("val_hours_12")}];
         } else if (key === "title") {
             list = [{id: true, title: t("val_name_show")}, {id: false, title: t("val_name_hide")}];
-        } else if (key === "motion" || key === "beta") {
+        } else if (key === "motion" || key === "shade" || key === "beta") {
             list = [{id: true, title: t("val_on")}, {id: false, title: t("val_off")}];
         }
         return list;
@@ -939,6 +947,8 @@ FocusScope {
             theme: Themes.ids.indexOf(s.theme) >= 0 ? s.theme : "default",
             size: ["normal", "large", "larger"].indexOf(s.size) >= 0 ? s.size : "normal",
             motion: s.motion !== false,
+            // The shade and the glow behind the row; no key keeps them.
+            shade: s.shade !== false,
             sort: ["lg", "az", "used"].indexOf(s.sort) >= 0 ? s.sort : "lg",
             tv: s.tv === true,
             sourceOrder: sourceOrderFor(s.sourceOrder),
@@ -2438,13 +2448,19 @@ FocusScope {
         // menu the whole screen is shaded.
         Rectangle {
             id: scrim
+            objectName: "scrim"
+            // Off with "Shade behind Homebar", except under the settings
+            // menu: its text over a bright picture would not be readable.
+            visible: shell.shade || shell.page === "settings"
             anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
             height: shell.page === "settings" ? parent.height : shell.page === "apps" ? shell.px(660) : shell.px(540)
             Behavior on height { NumberAnimation { duration: shell.dur(180); easing.type: Easing.OutCubic } }
             property color tint: shell.theme.scrim
             function a(v) { return Qt.rgba(tint.r, tint.g, tint.b, v); }
-            // AMOLED: the band under the name and the row is solid black.
-            readonly property bool solid: shell.mono
+            // AMOLED: the shade is black, as deep as the other themes' under
+            // the row (a solid band hid most of the picture), and solid
+            // under the settings menu.
+            readonly property bool solid: shell.mono && shell.page === "settings"
             gradient: Gradient {
                 GradientStop { position: 0.00; color: scrim.a(shell.page === "settings" ? (scrim.solid ? 0.8 : 0.55) : 0) }
                 GradientStop { position: 0.22; color: scrim.a(shell.page === "settings" ? (scrim.solid ? 0.88 : 0.65) : scrim.solid ? 0.6 : 0.30) }
@@ -2458,7 +2474,7 @@ FocusScope {
         // reaches: a full-screen one is the costliest thing a TV's GPU is
         // asked for here, and it is redrawn while the colour fades.
         RadialGradient {
-            visible: !shell.mono
+            visible: shell.glow
             x: 0; y: parent.height - shell.px(455); width: shell.px(1400); height: shell.px(455)
             horizontalOffset: shell.px(192) - width/2; verticalOffset: shell.px(520) - height/2
             horizontalRadius: shell.px(1200); verticalRadius: shell.px(520)
@@ -2589,7 +2605,7 @@ FocusScope {
                                     Text {
                                         id: keyLabel; anchors.centerIn: parent; text: modelData.label
                                         font.family: shell.fontName; font.bold: true; font.pixelSize: shell.pt(12)
-                                        color: parent.colour === "red" ? (shell.mono ? "#000000" : "#ffffff") : parent.colour === "yellow" ? (shell.mono ? "#000000" : "#1d1a12") : shell.theme.keyLabel
+                                        color: parent.colour === "red" ? (shell.whiteKeys ? "#000000" : "#ffffff") : parent.colour === "yellow" ? (shell.whiteKeys ? "#000000" : "#1d1a12") : shell.theme.keyLabel
                                     }
                                 }
                             }
@@ -2638,12 +2654,12 @@ FocusScope {
                 }
                 Rectangle { id: corners; anchors.fill: parent; radius: cell.corner; visible: false }
                 // AMOLED: the icon in greys, one pass over the tile only, and
-                // only while that theme is on.
+                // only while such a theme is on.
                 Loader {
-                    id: grey; anchors.fill: parent; visible: false; active: shell.mono
+                    id: grey; anchors.fill: parent; visible: false; active: shell.greyIcons
                     sourceComponent: Desaturate { source: icon; desaturation: 1 }
                 }
-                OpacityMask { anchors.fill: parent; source: shell.mono && grey.item ? grey.item : icon; maskSource: corners; visible: icon.status === Image.Ready }
+                OpacityMask { anchors.fill: parent; source: shell.greyIcons && grey.item ? grey.item : icon; maskSource: corners; visible: icon.status === Image.Ready }
                 // Edit handles sit on the tile edges, inside the gap to the neighbours.
                 // Beside a large tile; above a small one (inputs first), where
                 // they would cover most of the icon, as with a shortcut.

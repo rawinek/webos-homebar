@@ -35,7 +35,7 @@ def themes():
     text = (ROOT / "ui/Themes.js").read_text()
     out = [(m[0], m[1] or "#f2f3f5", m[2] or "#26282e")
            for m in re.findall(r'\{id: "(\w+)"(?:, accent: "(#\w+)", base: "(#\w+)")?\}', text)]
-    out += [(m, "#ffffff", "#000000") for m in re.findall(r'\{id: "(\w+)", mono: true\}', text)]
+    out += [(m, "#ffffff", "#000000") for m in re.findall(r'\{id: "(\w+)", mono: true[^}]*\}', text)]
     return out
 
 
