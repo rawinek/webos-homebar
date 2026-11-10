@@ -53,7 +53,7 @@ name next to it.
 | 1.x – 2.x | webOS 1.0 – 2.0 | 2014–2015 | Web app | — (no variant fits: no QML Home, node 0.10) | Not supported |
 | 3.x | webOS 3.0, 3.5 | 2016–2017 | QML | Home panel, if the patch fits | Untested |
 | 4.x | webOS 4.0, 4.5 | 2018–2019 | QML | Home panel | **Tested on 4.10** (webOS 4.5: LG C9, and UM71, B9 and E9 by users) |
-| 5.x | webOS 5.0 | 2020 | QML, the same kind of ribbon as 4.x | Home panel (the patch fits; else the overlay) | **Tested on 5.6** (LG NANO80, UN73 and UN90, by users) |
+| 5.x | webOS 5.0 | 2020 | QML, the same kind of ribbon as 4.x | Home panel (the patch fits; else the overlay) | **Tested on 5.4 and 5.6** (LG BX, NANO80, UN73 and UN90, by users) |
 | 6.x | webOS 6.0 | 2021 | QML, a new full-screen Home | Overlay, HOME via Input Hook; LG's Home kept unless `--replace-lg-home`. System HOME by choice (`--native-home` or *Launch method*). The Home panel in LG's full-screen Home: `--home-panel`, experimental (no picture behind it: that Home covers the app) | **Tested on 6.3 and 6.5** (LG C1 and UP78, by users); System HOME **works on a C1 with 6.5.3** (by a user) |
 | 7.x | webOS 22 | 2022 | QML, as far as known; the full-screen Home | Overlay, HOME via Input Hook; LG's Home kept unless `--replace-lg-home` | Overlay **tested on 7.5** (a 2022 TV, by a user); System HOME: `--try-native-home` trial, untested |
 | 8.x | webOS 23 | 2023 | QML, as far as known; the full-screen Home | Most likely the overlay, as on 6.x | Untested; System HOME: `--try-native-home` trial |
@@ -130,6 +130,7 @@ pills, one with DisplayPort or USB-C shows those too.
 | LG 55NANO803NA (NANO80, 2020) | 5.6.2 (webOS 5.0) | 04.64.00 | Home panel | 0.15.2, by a user |
 | LG 55UN731C0SC (UN73, 2020) | 5.6.2 (webOS 5.0) | 04.64.00 | Home panel, with the TV's Home screen on *Basic* | 0.15.3, by a user |
 | LG 75UN9070AUD (UN90, 2020) | 5.6.2 (webOS 5.0) | 04.64.00 | Home panel, with the TV's Home screen on *Basic* | 0.17.1, by a user |
+| LG OLED55BX6LB (BX, 2020) | 5.4.3 (webOS 5.0) | 04.41.35 | Home panel | 0.20.1, by a user |
 | LG OLED55C16LA (C1, 2021) | 6.3.2 (webOS 6.0) | 03.34.80 | Overlay, LG's Home kept | 0.14.0, by a user |
 | LG 43UP78006LB (UP78, 2021) | 6.5.3 (webOS 6.0) | 03.53.45 | Overlay, LG's Home kept | 0.15.1, by a user |
 | LG OLED65C11LB (C1, 2021) | 6.5.3 (webOS 6.0) | 03.53.45 | System HOME (trial, `--try-native-home`) | 0.19.2-rc4, by a user |

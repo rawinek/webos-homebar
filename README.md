@@ -111,7 +111,7 @@ installs use. An update never changes the method.
 | :--- | :--- | :--- |
 | 3.x (2016–2017) | Home panel, if the patch fits | Untested |
 | 4.x (webOS 4.0 / 4.5, 2018–2019) | Home panel (on a TV with two Home screens, set to *Basic*) | Tested on 4.10 (LG C9, and UM7100, B9 and E9 by users) |
-| 5.x (webOS 5.0, 2020) | Home panel | Tested on 5.6 (LG NANO80, UN73 and UN90, by users) |
+| 5.x (webOS 5.0, 2020) | Home panel | Tested on 5.4 and 5.6 (LG BX, NANO80, UN73 and UN90, by users) |
 | 6.x (webOS 6.0, 2021) | Overlay, HOME via Input Hook (or the additional overlay); System HOME by choice | Tested on 6.3 and 6.5 (LG C1 and UP78, by users); System HOME on two C1s (6.5.3, by users) |
 | 7.x (webOS 22, 2022) | Overlay, HOME via Input Hook; System HOME as a trial | Overlay tested on 7.5 (by a user); System HOME untested |
 | 8.x, 9.x (webOS 23, 24) | Overlay, HOME via Input Hook; System HOME as a trial | Untested |
