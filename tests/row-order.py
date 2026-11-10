@@ -132,14 +132,14 @@ with tempfile.TemporaryDirectory() as tmp:
    for few in [False,True]:
     for text in ['normal','larger']:
      scene(order,favs=favs if few else [x[0] for x in rp.APPS[:7]],settings={'favSize':size,'size':text})
-     z=js('shell.sourceZoom');w=js('shell.iconWanted');lvl=js('shell.iconLevel');ft=js('shell.favouriteTile');base=js('shell.sourceBaseHeight')
+     z=js('shell.sourceZoom');w=js('shell.iconWanted');sw=js('shell.sourceWanted');lvl=js('shell.iconLevel');ft=js('shell.favouriteTile');base=js('shell.sourceBaseHeight')
      used=js('shell.sourcesWidth+shell.favsWidth+shell.actionWidth+(shell.railGroups-1)*shell.railGroupGap');room=js('shell.width-2*shell.margin')
      tag=(order,size,few,text,z,w,lvl,ft,used,room)
      ok(used<=room+1,'the row fits %s'%(tag,))
      if order=='inputs':
-      ok(ft<=lvl and z>=1 and round(base*z)<=w+1,'inputs first: favourites small, inputs up to the size %s'%(tag,))
+      ok(ft<=lvl and z>=1 and round(base*z)<=sw+1 and sw==round((lvl+w)/2),'inputs first: favourites small, inputs up to halfway to the size %s'%(tag,))
       if size=='small':ok(z==1 and ft==lvl,'small: one height %s'%(tag,))
-      if few and size=='large' and text=='normal':ok(abs(base*z-w)<=1,'room to spare: inputs reach the full size %s'%(tag,))
+      if few and size=='large' and text=='normal':ok(abs(base*z-sw)<=1 and sw<w,'room to spare: inputs reach halfway, below a large tile %s'%(tag,))
      else:
       ok(z==1 and ft<=w,'favourites first: inputs as they are %s'%(tag,))
  scene(None,settings={'favSize':'small'});js('shell.page="apps"');ok(js('shell.appIconSize')==js('shell.iconLevel') and js('shell.appColumns')>js('Math.floor((shell.width-2*shell.margin+shell.gap)/(shell.tile+shell.gap))'))

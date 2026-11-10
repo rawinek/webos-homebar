@@ -485,14 +485,18 @@ FocusScope {
     // The first group of the row takes the chosen size and the second is as
     // tall as the pills. Favourites first (the default): the favourites are
     // iconWanted, the sources stay as they are. Inputs first: the sources
-    // grow to iconWanted (sourceZoom) and the favourites are iconLevel. Both
+    // grow halfway from iconLevel to iconWanted (sourceWanted, by sourceZoom:
+    // a pill is two or three times as wide as it is tall, so at the full
+    // height it looked larger than a large tile) and the favourites are
+    // iconLevel. Both
     // give way when the row runs out of room: the first group shrinks first,
     // down to the second's size, then the favourites down to 48 px, and only
     // then the whole rail (its scale).
     readonly property int favsAtLevel: favSlots > 0 ? favSlots*(iconLevel + gap) - gap : 0
     readonly property real sourceZoomFit: sourcesBaseWidth - Math.max(0, sourceCount-1)*sourceGap > 0
         ? (railRoom - favsAtLevel - Math.max(0, sourceCount-1)*sourceGap) / (sourcesBaseWidth - Math.max(0, sourceCount-1)*sourceGap) : 1
-    readonly property real sourceZoom: inputsFirst && sourceCount > 0 ? Math.max(1, Math.min(iconWanted / sourceBaseHeight, sourceZoomFit)) : 1
+    readonly property int sourceWanted: Math.round((iconLevel + iconWanted)/2)
+    readonly property real sourceZoom: inputsFirst && sourceCount > 0 ? Math.max(1, Math.min(sourceWanted / sourceBaseHeight, sourceZoomFit)) : 1
     // With the inputs first but none on the row the favourites are the
     // first group, so they take the chosen size.
     readonly property int favouriteMax: inputsFirst && sourceCount > 0 ? iconLevel : iconWanted
