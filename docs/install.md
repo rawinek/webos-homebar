@@ -226,8 +226,8 @@ host came up and gives LG Home back at once if it did not.
 On webOS 7 the app manager cannot reread a replaced Home either (it has no
 `blockSystemApp`, issue #25), so the trial there takes the webOS 6 route and
 replaces LG Home's program; so does any later webOS whose app manager lacks
-that call while LG's Home is such a program. Nobody has confirmed it on
-webOS 7 to 9 yet. If you would like to find out on your TV (Homebrew Channel
+that call while LG's Home is such a program. It works on webOS 7.6 (an LG
+UQ75, issue #25); webOS 8 and 9 are untested. If you would like to find out on your TV (Homebrew Channel
 and a root shell as for any install):
 
 ```sh
