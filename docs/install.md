@@ -223,9 +223,12 @@ program instead (as Luma does): a script mounted over it runs the system's
 `qml-runner` on Homebar's host. Each switch checks within 25 seconds that the
 host came up and gives LG Home back at once if it did not.
 
-Other launchers replace LG's Home on webOS 7 and 9 as well (Glasshouse), so it
-may work there, but nobody has tried Homebar's version. If you would like to
-find out on your TV (Homebrew Channel and a root shell as for any install):
+On webOS 7 the app manager cannot reread a replaced Home either (it has no
+`blockSystemApp`, issue #25), so the trial there takes the webOS 6 route and
+replaces LG Home's program; so does any later webOS whose app manager lacks
+that call while LG's Home is such a program. Nobody has confirmed it on
+webOS 7 to 9 yet. If you would like to find out on your TV (Homebrew Channel
+and a root shell as for any install):
 
 ```sh
 sh install.sh --try-native-home
@@ -233,7 +236,8 @@ sh install.sh --try-native-home
 
 What it does: it allows System HOME on this TV, switches to it, and checks
 within 25 seconds that the app manager reports a QML Home and that a
-`qml-runner` runs it. **If that check fails, LG Home is given back at once** and
+`qml-runner` runs it (where LG Home's program is replaced: that a `qml-runner`
+runs it under the Home id). **If that check fails, LG Home is given back at once** and
 the trial option is removed again. If it passes, press HOME and see what
 happens. In either case it writes the log to `/tmp/homebar-native-trial.txt`;
 the same text is in `sh /var/lib/webosbrew/rawin-launcher-home/diagnose.sh`

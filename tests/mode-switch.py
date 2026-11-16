@@ -121,24 +121,31 @@ def test():
    assert not t.p(BASE+'/mode-switch-lock').exists();count+=1
   finally:t.clean()
  # The trial on webOS 9: allowed once the owner asked for it, undone at once when SAM never reports a running QML Home.
+ # Its sam has blockSystemApp (the schema), so Home's folder is what gets replaced.
  t=TV(release='9.0')
  try:
-  t.put(BASE+'/native-trial','');t.put(BASE+'/keep-lg-home','');before=t.p(KEYS).read_bytes();linked=t.p(HOME).is_symlink()
+  t.put('/etc/palm/schemas/sam/applicationManager.blockSystemApp.schema','{}');t.put(BASE+'/native-trial','');t.put(BASE+'/keep-lg-home','');before=t.p(KEYS).read_bytes();linked=t.p(HOME).is_symlink()
   t.switch('native',False)
   assert not t.p(BASE+'/native-home').exists() and t.p(HOME).is_symlink()==linked and t.p(KEYS).read_bytes()==before
-  assert 'Home after' in t.p(BASE+'/native-trial.log').read_text();count+=1
+  assert 'Home after' in t.p(BASE+'/native-trial.log').read_text() and 'takeover method: app folder' in t.p(BASE+'/native-trial.log').read_text();count+=1
  finally:t.clean()
- # The trial on webOS 6: sam cannot reread Home there, so a script takes the
- # place of Home's program and runs qml-runner on the staged host; given back
- # on the way to the overlay, and at once when no host comes up.
+ # The trial on webOS 6 and 7 (#25: no blockSystemApp there), and on a later
+ # webOS whose sam has no blockSystemApp schema while Home is LG's native
+ # program: a script takes the place of Home's program and runs qml-runner on
+ # the staged host; given back on the way to the overlay, and at once when no
+ # host comes up.
  EXE='/usr/bin/com.webos.app.home'
- for host in [True,False]:
-  t=TV(release='6.5.3')
+ for release,host in [('6.5.3',True),('6.5.3',False),('7.6.0',True),('7.6.0',False),('9.0',True)]:
+  t=TV(release=release)
   try:
-   t.put(EXE,'lg-home-program');t.p('/usr/bin/qml-runner').chmod(0o755);t.put(HOME+'/appinfo.json','{"type":"native"}');t.put(BASE+'/native-trial','')
+   t.put(EXE,'lg-home-program');t.p('/usr/bin/qml-runner').chmod(0o755);t.put(BASE+'/native-trial','')
+   t.put(HOME+'/appinfo.json','{"type":"native","main":"file:///usr/bin/com.webos.app.home"}')
    if host:t.put('/proc/4242/cmdline',str(t.root)+'/usr/bin/qml-runner\0--main\0file:///x/main.qml\0{"appId":"com.webos.app.home"}\0')
    t.switch('native',host)
    log=t.p(BASE+'/native-trial.log').read_text();assert 'Home program:' in log and 'qml-runner takes --main' in log,log
+   # Everything a report needs in one go: the method, sam's ways to reread, roles, appinfo.
+   for part in ['takeover method: in place of the Home program','blockSystemApp schema: absent','configd blocked-app list:','Home appinfo: {','Home\'s bus roles','qml-runner knows:','bus hub:']:
+    assert part in log,(part,log)
    if host:
     assert t.p(BASE+'/native-home').exists() and t.p(EXE).is_symlink() and not t.p(HOME).is_symlink()
     wrapper=t.p(BASE+'/home-exe').read_text()

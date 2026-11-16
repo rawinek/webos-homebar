@@ -17,16 +17,23 @@ BASE=/var/lib/webosbrew/rawin-launcher-home
 STAGE=$BASE/app
 HOME_TYPE=web
 if [ -f "$BASE/native-home" ]; then STAGE=$BASE/native-app; HOME_TYPE=qml; fi
-# webOS 6 (trial): sam cannot read a mounted Home again there (it has no
-# blockSystemApp), and LG's Home is a native program that sam starts with its
-# launch data. The program is what gets replaced: a script bind-mounted over
-# it runs the TV's qml-runner on the staged QML host with that same data.
-# qml-runner calls sam on the app's behalf under its own bus name, so the
-# role tied to LG's program does not matter.
+# webOS 6 and 7: sam cannot read a mounted Home again there (it has no
+# blockSystemApp; webOS 7 answers "Unknown method", issue #25), and LG's Home
+# is a native program that sam starts with its launch data. The program is
+# what gets replaced: a script bind-mounted over it runs the TV's qml-runner
+# on the staged QML host with that same data. qml-runner calls sam on the
+# app's behalf under its own bus name, so the role tied to LG's program does
+# not matter. The same holds on any later webOS whose sam has no
+# blockSystemApp (no schema for it) while Home is that native program.
 EXE=/usr/bin/com.webos.app.home
 WRAPPER=$BASE/home-exe
+BLOCK_SCHEMA=/etc/palm/schemas/sam/applicationManager.blockSystemApp.schema
+exe_home() {
+  grep -qE 'release (6|7)\.' /etc/starfish-release && return 0
+  [ ! -e "$BLOCK_SCHEMA" ] && grep -q '"main"[[:space:]]*:[[:space:]]*"file:///usr/bin/com\.webos\.app\.home"' "$HOMEAPP/appinfo.json" 2>/dev/null
+}
 EXE_MODE=
-if [ -f "$BASE/native-home" ] && grep -qE 'release 6\.' /etc/starfish-release; then EXE_MODE=1; fi
+if [ -f "$BASE/native-home" ] && exe_home; then EXE_MODE=1; fi
 CHECKPOINTS="/mnt/lg/cmn_data/checkpoint/com.webos.app.home /tmp/checkpoint/com.webos.app.home"
 TAG=rawin-launcher
 # The system log and, with the seconds since boot, the launcher's boot log
@@ -96,13 +103,13 @@ lg_home_pids() {
   pidof com.webos.app.home 2>/dev/null | tr ' ' '\n'
 }
 
-# The program sam starts for Home on webOS 6, and LG's saved image of its
+# The program sam starts for Home on webOS 6 and 7, and LG's saved image of its
 # running Home (CRIU), which sam would restore instead of starting anything:
 # an empty folder is mounted over each image folder while Homebar is Home.
 write_wrapper() {
   cat >"$WRAPPER" <<EOF
 #!/bin/sh
-# Homebar (webOS 6 trial): sam starts this in place of LG Home's program, with
+# Homebar (webOS 6 and 7): sam starts this in place of LG Home's program, with
 # its launch data; qml-runner runs Homebar's QML host with that data instead.
 exec /usr/bin/qml-runner --main file://$STAGE/main.qml "\$@" >>/tmp/homebar-home-qml.log 2>&1
 EOF
@@ -134,7 +141,7 @@ case "$1" in
     if [ -f "$BASE/integration.js" ]; then
       case "$(node "$BASE/integration.js" owner)" in lg|native|legacy) ;; *) log 'another or unknown Home owner; refusing takeover'; exit 1 ;; esac
     fi
-    # webOS 6: the program is replaced without sam, so it is done before sam is
+    # webOS 6 and 7: the program is replaced without sam, so it is done before sam is
     # up; otherwise HOME opens LG's Home for the first minute after a boot.
     if [ -n "$EXE_MODE" ]; then
       if ! mounted && grep -qE " ($EXE|$HOMEAPP)(/[^ ]*)? " /proc/mounts; then
